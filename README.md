@@ -1,6 +1,7 @@
 # Surfer (alpha 0.1)
 
-Surfer is a simple tool designed to enhance your experience while using Surfbar. It is compatible with **Windows**, **Linux**, and **macOS**.
+Surfer is a simple tool designed to enhance your experience while using Surfbar.
+It is compatible with **Windows**, **Linux**, and **macOS**.
 
 ---
 
