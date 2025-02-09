@@ -1,0 +1,9 @@
+.m3u8
+.mpd
+.mp3
+.mp4
+.ogg
+.wav
+.webm
+.mkv
+.flac
