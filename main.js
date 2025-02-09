@@ -273,7 +273,7 @@ app.whenReady().then(() => {
                     <title>Notice</title>
                 </head>
                 <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20%;">
-                    <h2>Please add your surf links in <code>config/surfbar_links.txt</code>.</h2>
+                    <h2>Please add your surf links in <code>config/surfbar_links.txt</code> and restart.</h2>
                 </body>
             </html>`
         ).then();
