@@ -15,5 +15,5 @@ fi
 # Start Electron with main.js
 npx electron main.js
 
-# Pause für Linux/macOS
+# Pause for Linux/macOS (optional, keeps terminal open)
 read -p "Drücke Enter zum Beenden..."
