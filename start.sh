@@ -16,4 +16,4 @@ fi
 npx electron main.js
 
 # Pause for Linux/macOS (optional, keeps terminal open)
-read -p "Drücke Enter zum Beenden..."
+read -p "Press Enter to exit..."
