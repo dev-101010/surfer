@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 setlocal
 
 :: Set the desired path where main.js is located

@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 
 # Set the desired path where main.js is located
 PROJECT_PATH="$(dirname "$0")"
