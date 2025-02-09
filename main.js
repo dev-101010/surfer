@@ -251,31 +251,5 @@ app.whenReady().then(() => {
         win.loadURL(url).then();
     });
 
-    // If no URLs are provided, show a notice
-    if (startURLs.size === 0) {
-        let win = new BrowserWindow({
-            width: 1280, height: 720, backgroundThrottling: true, webPreferences: {
-                sandbox: false,
-                nodeIntegration: false,
-                contextIsolation: true,
-                webSecurity: true,
-                autoplayPolicy: 'document-user-activation-required',
-                disableBlinkFeatures: "MediaStream,EncryptedMedia",
-                siteInstance: true,
-                enableRemoteModule: false
-            }
-        });
-
-        win.loadURL(`data:text/html;charset=utf-8,
-            <html lang="de">
-                <head>
-                    <meta charset="utf-8">
-                    <title>Notice</title>
-                </head>
-                <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20%;">
-                    <h2>Please add your surf links in <code>config/surfbar_links.txt</code> and restart.</h2>
-                </body>
-            </html>`
-        ).then();
-    }
+    console.error(`Please add your surf links in "config/surfbar_links.txt" and restart.`);
 });
