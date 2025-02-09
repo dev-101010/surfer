@@ -110,15 +110,99 @@ app.whenReady().then(() => {
         }
     });
 
-    // Block iframes that exceed the configured depth
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        const url = details.url.toLowerCase();
+
+        // Block iframes deeper than the allowed depth
         if (details.resourceType === 'subFrame') {
             let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
             if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                console.warn(`Blocked deeply nested iframe (depth: ${frameDepth}): ${details.url}`);
+                console.warn(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
                 return callback({ cancel: true });
             }
         }
+
+        // Block audio and video content based on Content-Type header
+        if (details.responseHeaders && details.responseHeaders['content-type']) {
+            let contentType = details.responseHeaders['content-type'][0].toLowerCase();
+            if (contentType.includes('video') || contentType.includes('audio')) {
+                console.warn(`Blocked media content based on Content-Type: ${url}`);
+                return callback({ cancel: true });
+            }
+        }
+
+        // Block blacklisted domains
+        if ([...blockedDomains].some(domain => url.includes(domain))) {
+            console.warn(`Blocked domain from blacklist: ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Block specific file extensions
+        if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+            console.warn(`Blocked file extension: ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Allow only whitelisted domains
+        if ([...whitelistDomains].some(domain => url.includes(domain))) {
+            return callback({ cancel: false, responseHeaders: details.responseHeaders });
+        }
+
+        // Allow all other requests
+        callback({ cancel: false, responseHeaders: details.responseHeaders });
+    });
+
+    win.webContents.setWindowOpenHandler(({ url }) => {
+        if ([...whitelistDomains].some(domain => url.includes(domain))) {
+            return { action: 'allow' }; // Allows only Whitelist-Domains
+        }
+
+        console.warn(`Blocked new window: ${url}`);
+        return { action: 'deny' }; // Blocked to open new window
+    });
+
+    session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
+        const url = details.url.toLowerCase();
+
+        // Block iframes deeper than the allowed depth
+        if (details.resourceType === 'subFrame') {
+            let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
+            if (frameDepth >= config.MAX_IFRAME_DEPTH) {
+                console.warn(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
+                return callback({ cancel: true });
+            }
+        }
+
+        // Allow only whitelisted domains
+        if ([...whitelistDomains].some(domain => url.includes(domain))) {
+            return callback({ cancel: false });
+        }
+
+        // Block audio and video content before it loads
+        if (['media', 'object'].includes(details.resourceType)) {
+            console.warn(`Blocked media content (Audio/Video): ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Block requests from blacklisted domains
+        if ([...blockedDomains].some(domain => url.includes(domain))) {
+            console.warn(`Blocked domain from blacklist: ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Block specific file extensions
+        if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+            console.warn(`Blocked file extension: ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Block specific URL types like blob:, base64:, and WebSockets
+        if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
+            console.warn(`Blocked special URL type: ${url}`);
+            return callback({ cancel: true });
+        }
+
+        // Allow all other requests
         callback({ cancel: false });
     });
 
