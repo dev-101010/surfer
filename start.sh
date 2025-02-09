@@ -1,19 +1,20 @@
-#!/bin/sh
+﻿#!/bin/sh
 
-# Setze den gewünschten Pfad, wo main.js liegt
+# Set the desired path where main.js is located
 PROJECT_PATH="$(dirname "$0")"
 
-# Wechsle in das richtige Verzeichnis
-cd "$PROJECT_PATH" || { echo "Fehler: Verzeichnis nicht gefunden!"; exit 1; }
+# Change to the correct directory
+cd "$PROJECT_PATH" || { echo "Error: Directory not found!"; exit 1; }
 
-# Prüfe, ob Electron installiert ist
+# Check if Electron is installed
 if ! command -v electron &> /dev/null; then
-    echo "Electron nicht gefunden, versuche zu installieren..."
+    echo "Electron not found, attempting to install..."
     npm install -g electron
 fi
 
-# Starte Electron mit der main.js
+# Start Electron with main.js
 npx electron main.js
 
-# Pause für Linux/macOS
-read -p "Drücke Enter zum Beenden..."
+# Pause for Linux/macOS (optional, keeps terminal open)
+echo "Press Enter to exit..."
+read

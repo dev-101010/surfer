@@ -1,20 +1,19 @@
-@echo off
-chcp 65001 >nul
+﻿@echo off
+setlocal
 
-SET PROJECT_PATH=%~dp0
+:: Set the desired path where main.js is located
+cd /d "%~dp0"
 
-REM Wechsel in das richtige Verzeichnis
-cd /d "%PROJECT_PATH%"
-
-REM Pr?fe, ob Electron verf?gbar ist (npx nutzt globale Installation)
+:: Check if Electron is installed
 where electron >nul 2>nul
-IF ERRORLEVEL 1 (
-    echo Electron nicht gefunden, versuche zu installieren...
-    npm install -g electron || exit /b 1
+if %errorlevel% neq 0 (
+    echo Electron not found, attempting to install...
+    npm install -g electron
 )
 
-REM Starte Electron mit main.js ?ber npx (nutzt globale Installation, falls vorhanden)
+:: Start Electron with main.js
 npx electron main.js
 
-REM Pause f?r Windows
-pause
+:: Pause for Windows
+echo Press any key to exit...
+pause >nul
