@@ -29,7 +29,7 @@ Extract the downloaded ZIP file to a directory of your choice.
 
 ### Step 4: Configure Surfbar Link
 1. Navigate to the `config` directory.
-2. Open the `surfbar_link.txt` file.
+2. Open the `surfbar_links.txt` file.
 3. Add your Surfbar links to the file and save it. (line by line)
 
 ---
