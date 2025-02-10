@@ -45,3 +45,6 @@ Extract the downloaded ZIP file to a directory of your choice.
 2. Run the following command to execute the script:
    ```bash
    ./start.sh
+
+
+![surfer](https://github.com/user-attachments/assets/48deb44e-daf6-4263-8b38-f903db49e32d)
