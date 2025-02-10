@@ -71,8 +71,12 @@ Below are the default settings available in `config.json`:
 ### Linux and macOS
 1. Open a terminal and navigate to the extracted directory.
 2. Run the following command to execute the script:
+   ###### First start, make executable:
    ```bash
-   chmod +x start.sh // first time make file executable
+   chmod +x start.sh
+   ```
+   ###### Start:
+   ```bash
    ./start.sh // to start
     ```
 
