@@ -10,7 +10,8 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 let config = {
     MAX_IFRAME_DEPTH: 3,  // Maximum allowed iframe nesting depth
     JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
-    BLOCK_DOWNLOADS: true // Enable or disable downloads
+    BLOCK_DOWNLOADS: true, // Enable or disable downloads
+    RELOAD_TIMER: 0 // Reload site every X seconds
 };
 
 // Load configuration from `config.json`
@@ -108,6 +109,7 @@ function createLogger(win) {
 app.whenReady().then(() => {
     // Create a new BrowserWindow for each URL in startURLs
     startURLs.forEach(url => {
+
         let win = new BrowserWindow({
             width: 1280, height: 720, backgroundThrottling: true, webPreferences: {
                 sandbox: false,
@@ -122,6 +124,14 @@ app.whenReady().then(() => {
         });
 
         const logger = createLogger(win);
+
+        // Set up the reload timer if RELOAD_TIMER is greater than 0
+        if (config.RELOAD_TIMER > 0) {
+            setInterval(() => {
+                logger(`Reloading page after ${config.RELOAD_TIMER} seconds...`);
+                win.webContents.reload();
+            }, config.RELOAD_TIMER * 1000);
+        }
 
         session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
             const url = details.url.toLowerCase();
@@ -283,6 +293,27 @@ app.whenReady().then(() => {
 
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
-        console.error(`[Surfer] Please add your surf links in "config/surfbar_links.txt" and restart.`);
+        console.error(`Please add your surf links in "config/surfbar_links.txt" and restart.`);
     }
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('before-quit', () => {
+    console.log('Application is quitting...');
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.close();
+    });
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
