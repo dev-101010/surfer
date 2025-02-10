@@ -1,4 +1,5 @@
 {
   "MAX_IFRAME_DEPTH": 3,
-  "JS_CHECK_ENABLED": true
+  "JS_CHECK_ENABLED": true,
+  "BLOCK_DOWNLOADS": true
 }
