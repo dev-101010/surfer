@@ -67,6 +67,7 @@ Below are the default settings available in `config.json`:
 ### Windows
 1. Open the extracted directory.
 2. Double-click on `start.bat` to run the script.
+3. If asked, allow to execute.
 
 ### Linux and macOS
 1. Open a terminal and navigate to the extracted directory.
