@@ -283,6 +283,6 @@ app.whenReady().then(() => {
 
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
-        console.error(`Please add your surf links in "config/surfbar_links.txt" and restart.`);
+        console.error(`[Surfer] Please add your surf links in "config/surfbar_links.txt" and restart.`);
     }
 });
