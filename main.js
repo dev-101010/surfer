@@ -166,10 +166,15 @@ app.whenReady().then(() => {
         });
 
         win.webContents.setWindowOpenHandler((details) => {
-            let senderFrame = details.frame;
-            if (!senderFrame) return { action: 'deny' };
 
-            let senderDomain = new URL(senderFrame.url).hostname.toLowerCase();
+            let senderFrame = details.referrer;
+            if (!senderFrame) {
+                console.warn(`Blocked pop-up from unknown Sender to: ${details.url}`);
+                return { action: 'deny' };
+            }
+
+            let senderDomain = getDomain(senderFrame.url);
+
             if (whitelistDomains.has(senderDomain)) {
                 return { action: 'allow' };
             } else {
@@ -179,8 +184,12 @@ app.whenReady().then(() => {
         });
 
         win.webContents.on('will-navigate', (event, newURL) => {
-            console.warn(`Blocked navigation to: ${newURL}`);
-            event.preventDefault();
+            let currentDomain = getDomain(win.webContents.getURL());
+            let targetDomain = getDomain(newURL);
+            if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
+                console.warn(`Blocked navigation from ${currentDomain} to: ${newURL}`);
+                event.preventDefault();
+            }
         });
 
         session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
@@ -228,7 +237,7 @@ app.whenReady().then(() => {
             callback({ cancel: false });
         });
 
-        session.on('will-download', (event, item) => {
+        win.webContents.session.on('will-download', (event, item) => {
             if (config.BLOCK_DOWNLOADS) {
                 console.warn(`Blocked download: ${item.getURL()}`);
                 event.preventDefault();
