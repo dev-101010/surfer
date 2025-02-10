@@ -113,7 +113,10 @@ function getDomain(url) {
 function createLogger(win) {
     return (message) => {
         const domain = getDomain(win.webContents.getURL());
-        console.log(`[${domain}] ${message}`);
+        if(domain !== 'unknown')
+            console.log(`[${domain}] ${message}`);
+        else
+            console.log(`[Surfer] ${message}`);
     };
 }
 
