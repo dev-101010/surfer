@@ -9,7 +9,8 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 // Default configuration values
 let config = {
     MAX_IFRAME_DEPTH: 3,  // Maximum allowed iframe nesting depth
-    JS_CHECK_ENABLED: true // Enable or disable additional JavaScript checks
+    JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
+    BLOCK_DOWNLOADS: true // Enable or disable downloads
 };
 
 // Load configuration from `config.json`
@@ -216,6 +217,13 @@ app.whenReady().then(() => {
 
             // Allow all other requests
             callback({ cancel: false });
+        });
+
+        session.on('will-download', (event, item) => {
+            if (config.BLOCK_DOWNLOADS) {
+                console.warn(`Blocked download: ${item.getURL()}`);
+                event.preventDefault();
+            }
         });
 
         // Inject JavaScript to monitor iframe depth and media elements
