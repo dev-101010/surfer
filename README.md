@@ -34,6 +34,34 @@ Extract the downloaded ZIP file to a directory of your choice.
 
 ---
 
+### Step 5: Configure Surfer (Optional)
+
+1. Navigate to the `config` directory.
+2. Open the `config.json` file.
+3. Modify the settings carefully.
+
+#### Default Configuration
+
+Below are the default settings available in `config.json`:
+
+```json
+{
+  "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
+  "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
+  "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
+  "BLOCK_MEDIA": true, // Enable or disable media blocking
+  "BLOCK_OTHER_URL_TYPES": true, // Enable or disable blocking of specific other URL types
+  "ALLOW_WHITELIST": true, // Enable or disable whitelisted domains
+  "BLOCK_DOMAINS": true, // Enable or disable blocked domains
+  "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
+  "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
+  "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
+  "RELOAD_TIMER": 0 // Reload site every X seconds (0 means disabled)
+}
+```
+
+---
+
 ## Usage
 
 ### Windows
