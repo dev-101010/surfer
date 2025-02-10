@@ -20,12 +20,12 @@ function loadConfig() {
             const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
             const parsedConfig = JSON.parse(data);
             config = { ...config, ...parsedConfig };
-            console.log('Config loaded:', config);
+            console.log('[Surfer] Config loaded:', config);
         } else {
-            console.warn('Config file not found, using default values.');
+            console.warn('[Surfer] Config file not found, using default values.');
         }
     } catch (error) {
-        console.error('Error loading config file:', error);
+        console.error('[Surfer] Error loading config file:', error);
     }
 }
 
@@ -41,10 +41,10 @@ function loadUserAgent() {
         const ua = fs.readFileSync(path.join(CONFIG_DIR, 'user_agent.txt'), 'utf-8').trim();
         if (ua) {
             userAgent = ua;
-            console.log(`Loaded User-Agent from config/user_agent.txt: ${userAgent}`);
+            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt: ${userAgent}`);
         }
     } catch (error) {
-        console.warn(`Could not load user_agent.txt, using default User-Agent.`);
+        console.warn(`[Surfer] Could not load user_agent.txt, using default User-Agent.`);
     }
 }
 
@@ -57,9 +57,9 @@ function loadFromFile(filename, targetSet) {
             let domain = line.trim().toLowerCase();
             if (domain) targetSet.add(domain);
         }
-        console.log(`Loaded ${targetSet.size} entries from config/${filename}`);
+        console.log(`[Surfer] Loaded ${targetSet.size} entries from config/${filename}`);
     } catch (error) {
-        console.error(`Error loading config/${filename}:`, error);
+        console.error(`[Surfer] Error loading config/${filename}:`, error);
     }
 }
 
