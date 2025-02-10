@@ -51,7 +51,7 @@ function loadUserAgent() {
         const ua = fs.readFileSync(path.join(CONFIG_DIR, 'user_agent.txt'), 'utf-8').trim();
         if (ua && ua.length > 0) {
             userAgent = ua;
-            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt`);
+            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt: ${userAgent}`);
         } else {
             console.warn(`[Surfer] Could not load user_agent.txt, using default User-Agent.`);
         }
