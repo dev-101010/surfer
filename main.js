@@ -10,7 +10,14 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 let config = {
     MAX_IFRAME_DEPTH: 3,  // Maximum allowed iframe nesting depth
     JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
-    BLOCK_DOWNLOADS: true, // Enable or disable downloads
+    BLOCK_DOWNLOADS: true, // Enable or disable download block
+    BLOCK_MEDIA: true, // Enable or disable media block
+    BLOCK_OTHER_URL_TYPES: true, // Enable or disable specific other URL types block
+    ALLOW_WHITELIST: true, // Enable or disable whitelisted domains
+    BLOCK_DOMAINS: true, // Enable or disable blocked domains
+    BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
+    BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
+    BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
     RELOAD_TIMER: 0 // Reload site every X seconds
 };
 
@@ -136,39 +143,49 @@ app.whenReady().then(() => {
         session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
             const url = details.url.toLowerCase();
 
-            // Block iframes deeper than the allowed depth
-            if (details.resourceType === 'subFrame') {
-                let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
-                if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                    logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
-                    return callback({ cancel: true });
+            if(config.MAX_IFRAME_DEPTH > 0) {
+                // Block iframes deeper than the allowed depth
+                if (details.resourceType === 'subFrame') {
+                    let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
+                    if (frameDepth >= config.MAX_IFRAME_DEPTH) {
+                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
+                        return callback({cancel: true});
+                    }
                 }
             }
 
-            // Block audio and video content based on Content-Type header
-            if (details.responseHeaders && details.responseHeaders['content-type']) {
-                let contentType = details.responseHeaders['content-type'][0].toLowerCase();
-                if (contentType.includes('video') || contentType.includes('audio')) {
-                    logger(`Blocked media content based on Content-Type: ${url}`);
-                    return callback({ cancel: true });
+            if(config.ALLOW_WHITELIST) {
+                // Allow only whitelisted domains
+                if ([...whitelistDomains].some(domain => url.includes(domain))) {
+                    return callback({cancel: false, responseHeaders: details.responseHeaders});
                 }
             }
 
-            // Block blacklisted domains
-            if ([...blockedDomains].some(domain => url.includes(domain))) {
-                logger(`Blocked domain from blacklist: ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_MEDIA) {
+                // Block audio and video content based on Content-Type header
+                if (details.responseHeaders && details.responseHeaders['content-type']) {
+                    let contentType = details.responseHeaders['content-type'][0].toLowerCase();
+                    if (contentType.includes('video') || contentType.includes('audio')) {
+                        logger(`Blocked media content based on Content-Type: ${url}`);
+                        return callback({cancel: true});
+                    }
+                }
             }
 
-            // Block specific file extensions
-            if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                logger(`Blocked file extension: ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_DOMAINS) {
+                // Block blacklisted domains
+                if ([...blockedDomains].some(domain => url.includes(domain))) {
+                    logger(`Blocked domain from blacklist: ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
-            // Allow only whitelisted domains
-            if ([...whitelistDomains].some(domain => url.includes(domain))) {
-                return callback({ cancel: false, responseHeaders: details.responseHeaders });
+            if(config.BLOCK_EXTENSIONS) {
+                // Block specific file extensions
+                if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+                    logger(`Blocked file extension: ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
             // Allow all other requests
@@ -180,71 +197,87 @@ app.whenReady().then(() => {
         });
 
         win.webContents.setWindowOpenHandler((details) => {
+            if(config.BLOCK_NOT_WHITELISTED_POPUPS) {
+                let senderFrame = details.referrer;
+                if (!senderFrame) {
+                    logger(`Blocked pop-up from unknown Sender to: ${details.url}`);
+                    return {action: 'deny'};
+                }
 
-            let senderFrame = details.referrer;
-            if (!senderFrame) {
-                logger(`Blocked pop-up from unknown Sender to: ${details.url}`);
-                return { action: 'deny' };
+                let senderDomain = getDomain(senderFrame.url);
+
+                if (whitelistDomains.has(senderDomain)) {
+                    return {action: 'allow'};
+                } else {
+                    logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
+                    return {action: 'deny'};
+                }
             }
-
-            let senderDomain = getDomain(senderFrame.url);
-
-            if (whitelistDomains.has(senderDomain)) {
-                return { action: 'allow' };
-            } else {
-                logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
-                return { action: 'deny' };
-            }
+            return {action: 'allow'};
         });
 
         win.webContents.on('will-navigate', (event, newURL) => {
-            let currentDomain = getDomain(win.webContents.getURL());
-            let targetDomain = getDomain(newURL);
-            if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
-                logger(`Blocked navigation from ${currentDomain} to: ${newURL}`);
-                event.preventDefault();
+            if(config.BLOCK_NAVIGATION_TO_OTHER_DOMAINS) {
+                let currentDomain = getDomain(win.webContents.getURL());
+                let targetDomain = getDomain(newURL);
+                if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
+                    logger(`Blocked navigation from ${currentDomain} to: ${newURL}`);
+                    event.preventDefault();
+                }
             }
         });
 
         session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
             const url = details.url.toLowerCase();
 
-            // Block iframes deeper than the allowed depth
-            if (details.resourceType === 'subFrame') {
-                let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
-                if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                    logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
-                    return callback({ cancel: true });
+            if(config.MAX_IFRAME_DEPTH > 0) {
+                // Block iframes deeper than the allowed depth
+                if (details.resourceType === 'subFrame') {
+                    let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
+                    if (frameDepth >= config.MAX_IFRAME_DEPTH) {
+                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
+                        return callback({cancel: true});
+                    }
                 }
             }
 
-            // Allow only whitelisted domains
-            if ([...whitelistDomains].some(domain => url.includes(domain))) {
-                return callback({ cancel: false });
+            if(config.ALLOW_WHITELIST) {
+                // Allow only whitelisted domains
+                if ([...whitelistDomains].some(domain => url.includes(domain))) {
+                    return callback({cancel: false});
+                }
             }
 
-            // Block audio and video content before it loads
-            if (['media', 'object'].includes(details.resourceType)) {
-                logger(`Blocked media content (Audio/Video): ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_MEDIA) {
+                // Block audio and video content before it loads
+                if (['media', 'object'].includes(details.resourceType)) {
+                    logger(`Blocked media content (Audio/Video): ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
-            // Block requests from blacklisted domains
-            if ([...blockedDomains].some(domain => url.includes(domain))) {
-                logger(`Blocked domain from blacklist: ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_DOMAINS) {
+                // Block requests from blacklisted domains
+                if ([...blockedDomains].some(domain => url.includes(domain))) {
+                    logger(`Blocked domain from blacklist: ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
-            // Block specific file extensions
-            if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                logger(`Blocked file extension: ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_EXTENSIONS) {
+                // Block specific file extensions
+                if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+                    logger(`Blocked file extension: ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
-            // Block specific URL types like blob:, base64:, and WebSockets
-            if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
-                logger(`Blocked special URL type: ${url}`);
-                return callback({ cancel: true });
+            if(config.BLOCK_OTHER_URL_TYPES) {
+                // Block specific URL types like blob:, base64:, and WebSockets
+                if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
+                    logger(`Blocked special URL type: ${url}`);
+                    return callback({cancel: true});
+                }
             }
 
             // Allow all other requests
