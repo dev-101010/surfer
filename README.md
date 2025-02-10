@@ -50,7 +50,7 @@ Below are the default settings available in `config.json`:
   "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
   "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
   "BLOCK_MEDIA": true, // Enable or disable media blocking
-  "BLOCK_OTHER_URL_TYPES": true, // Enable or disable blocking of specific other URL types
+  "BLOCK_OTHER_URL_TYPES": true, // Enable or disable blocking of other URL types ( e.g. wss:// )
   "ALLOW_WHITELIST": true, // Enable or disable whitelisted domains
   "BLOCK_DOMAINS": true, // Enable or disable blocked domains
   "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
