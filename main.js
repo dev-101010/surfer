@@ -327,7 +327,7 @@ app.whenReady().then(() => {
             });
         }
 
-        // Set a custom user agent
+        // Set a custom user agents
         if(userAgent && userAgent.length > 0) {
             win.webContents.setUserAgent(userAgent);
         }
