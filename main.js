@@ -332,10 +332,6 @@ app.whenReady().then(() => {
             win.webContents.setUserAgent(userAgent);
         }
 
-        // Get the current user agent
-        const currentUserAgent = win.webContents.getUserAgent();
-        logger(`UserAgent: ${currentUserAgent}`);
-
         // Load the URL in the window
         win.loadURL(url).then();
     });
