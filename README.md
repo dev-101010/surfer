@@ -56,7 +56,7 @@ Below are the default settings available in `config.json`:
   "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
   "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
   "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
-  "RELOAD_TIMER": 0 // Reload surfbar every X seconds (0 means disabled)
+  "RELOAD_TIMER": 0 // Reload surfbar every X seconds (0 means disabled) (only needed if surfbar stuck after some time)
 }
 ```
 
