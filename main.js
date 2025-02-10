@@ -12,7 +12,7 @@ let config = {
     JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
     BLOCK_DOWNLOADS: true, // Enable or disable download block
     BLOCK_MEDIA: true, // Enable or disable media block
-    BLOCK_OTHER_URL_TYPES: true, // Enable or disable specific other URL types block
+    BLOCK_OTHER_URL_TYPES: true, // Enable or disable blocking of other URL types ( e.g. wss:// )
     ALLOW_WHITELIST: true, // Enable or disable whitelisted domains
     BLOCK_DOMAINS: true, // Enable or disable blocked domains
     BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
