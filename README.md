@@ -72,7 +72,9 @@ Below are the default settings available in `config.json`:
 1. Open a terminal and navigate to the extracted directory.
 2. Run the following command to execute the script:
    ```bash
-   ./start.sh
+   chmod +x start.sh // first time make file executable
+   ./start.sh // to start
+    ```
 
 
 ![surfer](https://github.com/user-attachments/assets/48deb44e-daf6-4263-8b38-f903db49e32d)
