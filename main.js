@@ -165,11 +165,15 @@ app.whenReady().then(() => {
             callback({ cancel: false, responseHeaders: details.responseHeaders });
         });
 
+        win.webContents.on('page-title-updated', (event, title) => {
+            logger(`Update: ${title}`);
+        });
+
         win.webContents.setWindowOpenHandler((details) => {
 
             let senderFrame = details.referrer;
             if (!senderFrame) {
-                console.warn(`Blocked pop-up from unknown Sender to: ${details.url}`);
+                logger(`Blocked pop-up from unknown Sender to: ${details.url}`);
                 return { action: 'deny' };
             }
 
@@ -178,7 +182,7 @@ app.whenReady().then(() => {
             if (whitelistDomains.has(senderDomain)) {
                 return { action: 'allow' };
             } else {
-                console.warn(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
+                logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
                 return { action: 'deny' };
             }
         });
@@ -187,7 +191,7 @@ app.whenReady().then(() => {
             let currentDomain = getDomain(win.webContents.getURL());
             let targetDomain = getDomain(newURL);
             if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
-                console.warn(`Blocked navigation from ${currentDomain} to: ${newURL}`);
+                logger(`Blocked navigation from ${currentDomain} to: ${newURL}`);
                 event.preventDefault();
             }
         });
@@ -239,7 +243,7 @@ app.whenReady().then(() => {
 
         win.webContents.session.on('will-download', (event, item) => {
             if (config.BLOCK_DOWNLOADS) {
-                console.warn(`Blocked download: ${item.getURL()}`);
+                logger(`Blocked download: ${item.getURL()}`);
                 event.preventDefault();
             }
         });
