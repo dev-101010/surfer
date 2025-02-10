@@ -78,7 +78,7 @@ Below are the default settings available in `config.json`:
    ```
    ###### Start:
    ```bash
-   ./start.sh // to start
+   ./start.sh
     ```
 
 
