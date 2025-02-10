@@ -165,13 +165,22 @@ app.whenReady().then(() => {
             callback({ cancel: false, responseHeaders: details.responseHeaders });
         });
 
-        win.webContents.setWindowOpenHandler(({ url }) => {
-            if ([...whitelistDomains].some(domain => url.includes(domain))) {
-                return { action: 'allow' }; // Allows only Whitelist-Domains
-            }
+        win.webContents.setWindowOpenHandler((details) => {
+            let senderFrame = details.frame;
+            if (!senderFrame) return { action: 'deny' };
 
-            logger(`Blocked new window: ${url}`);
-            return { action: 'deny' }; // Blocked to open new window
+            let senderDomain = new URL(senderFrame.url).hostname.toLowerCase();
+            if (whitelistDomains.has(senderDomain)) {
+                return { action: 'allow' };
+            } else {
+                console.warn(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
+                return { action: 'deny' };
+            }
+        });
+
+        win.webContents.on('will-navigate', (event, newURL) => {
+            console.warn(`Blocked navigation to: ${newURL}`);
+            event.preventDefault();
         });
 
         session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
