@@ -7,6 +7,7 @@ const CONFIG_DIR = path.join(__dirname, 'config');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 // Default configuration values
+// DO NOT EDIT - Overwritten by config file
 let config = {
     MAX_IFRAME_DEPTH: 3,  // Maximum allowed iframe nesting depth
     JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
@@ -18,8 +19,9 @@ let config = {
     BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
     BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
-    RELOAD_TIMER: 0 // Reload site every X seconds
+    RELOAD_TIMER: 0 // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
 };
+// DO NOT EDIT - Overwritten by config file
 
 // Load configuration from `config.json`
 function loadConfig() {
