@@ -1,6 +1,6 @@
 # Surfer (alpha 0.1)
 
-Surfer is a simple tool designed to enhance your experience while using Surfbars.
+Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser.
 
 Compatible with **Windows**, **Linux**, and **macOS**.
 
