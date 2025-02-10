@@ -51,7 +51,7 @@ function loadUserAgent() {
         const ua = fs.readFileSync(path.join(CONFIG_DIR, 'user_agent.txt'), 'utf-8').trim();
         if (ua && ua.length > 0) {
             userAgent = ua;
-            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt .`);
+            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt`);
         } else {
             console.warn(`[Surfer] Could not load user_agent.txt, using default User-Agent.`);
         }
@@ -135,15 +135,6 @@ app.whenReady().then(() => {
         });
 
         const logger = createLogger(win);
-
-        // Set a custom user agent
-        if(userAgent && userAgent.length > 0) {
-            win.webContents.setUserAgent(userAgent);
-        }
-
-        // Get the current user agent
-        const userAgent = win.webContents.getUserAgent();
-        logger(`UserAgent: ${userAgent}`);
 
         // Set up the reload timer if RELOAD_TIMER is greater than 0
         if (config.RELOAD_TIMER > 0) {
@@ -332,6 +323,15 @@ app.whenReady().then(() => {
                 `).then();
             });
         }
+
+        // Set a custom user agent
+        if(userAgent && userAgent.length > 0) {
+            win.webContents.setUserAgent(userAgent);
+        }
+
+        // Get the current user agent
+        const userAgent = win.webContents.getUserAgent();
+        logger(`UserAgent: ${userAgent}`);
 
         // Load the URL in the window
         win.loadURL(url).then();
