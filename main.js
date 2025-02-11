@@ -19,7 +19,8 @@ let config = {
     BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
     BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
-    RELOAD_TIMER: 0 // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
+    RELOAD_TIMER: 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
+    RENDER_PROCESS_LIMIT: 4 // allowed maximal render processes
 };
 // DO NOT EDIT - Overwritten by config file
 
@@ -87,7 +88,9 @@ loadFromFile('whitelist.txt', whitelistDomains);
 loadFromFile('surfbar_links.txt', startURLs);
 
 // Optimize process settings
-app.commandLine.appendSwitch('renderer-process-limit', '4');
+if(config.RENDER_PROCESS_LIMIT > 0) {
+    app.commandLine.appendSwitch('renderer-process-limit', config.RENDER_PROCESS_LIMIT.toString());
+}
 app.commandLine.appendSwitch('disable-site-isolation-trials');
 app.commandLine.appendSwitch('disable-gpu-process-prelaunch');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
