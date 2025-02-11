@@ -43,7 +43,6 @@ Extract the downloaded ZIP file to a directory of your choice.
 #### Default Configuration
 
 Below are the default settings available in `config.json`:
-
 ```json
 {
   "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
@@ -57,6 +56,22 @@ Below are the default settings available in `config.json`:
   "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
   "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
   "RELOAD_TIMER": 0 // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
+}
+```
+
+Below are the browser deep settings available in `browser_deep_config.json`:
+```json
+{
+  "disableSiteIsolationTrials": true,
+  "disableGpuProcessPrelaunch": true,
+  "disableRendererBackgrounding": true,
+  "enableLowEndDeviceMode": true,
+  "disableAccelerated2DCanvas": true,
+  "disableHardwareAcceleration": true,
+  "disableSoftwareRasterizer": true,
+  "disableGpu": true,
+  "disableGpuCompositing": true,
+  "rendererProcessLimit": 4
 }
 ```
 
