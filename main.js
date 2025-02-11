@@ -37,8 +37,9 @@ let browserConfig = {
 // Load configuration from `config.json`
 function loadConfig(file, target) {
     try {
-        if (fs.existsSync(file)) {
-            const data = fs.readFileSync(path.join(CONFIG_DIR, file), 'utf-8');
+        const filePath = path.join(CONFIG_DIR, file);
+        if (fs.existsSync(filePath)) {
+            const data = fs.readFileSync(filePath, 'utf-8');
             const parsedConfig = JSON.parse(data);
             target = { ...target, ...parsedConfig };
             console.log(`[Surfer] Config ${file} loaded:`, target);
