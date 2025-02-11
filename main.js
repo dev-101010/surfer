@@ -4,7 +4,6 @@ const path = require('path');
 
 // Path to the `config/` folder and `config.json`
 const CONFIG_DIR = path.join(__dirname, 'config');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 // Default configuration values
 // DO NOT EDIT - Overwritten by config file
@@ -20,28 +19,40 @@ let config = {
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
     BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
     RELOAD_TIMER: 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
-    RENDER_PROCESS_LIMIT: 4 // allowed maximal render processes
 };
+let browserConfig = {
+    disableSiteIsolationTrials: true,
+    disableGpuProcessPrelaunch: true,
+    disableRendererBackgrounding: true,
+    enableLowEndDeviceMode: true,
+    disableAccelerated2DCanvas: true,
+    disableHardwareAcceleration: true,
+    disableSoftwareRasterizer: true,
+    disableGpu: true,
+    disableGpuCompositing: true,
+    rendererProcessLimit: 4
+}
 // DO NOT EDIT - Overwritten by config file
 
 // Load configuration from `config.json`
-function loadConfig() {
+function loadConfig(file, target) {
     try {
-        if (fs.existsSync(CONFIG_FILE)) {
-            const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
+        if (fs.existsSync(file)) {
+            const data = fs.readFileSync(path.join(CONFIG_DIR, file), 'utf-8');
             const parsedConfig = JSON.parse(data);
-            config = { ...config, ...parsedConfig };
-            console.log('[Surfer] Config loaded:', config);
+            target = { ...target, ...parsedConfig };
+            console.log(`[Surfer] Config ${file} loaded:`, target);
         } else {
-            console.warn('[Surfer] Config file not found, using default values.');
+            console.warn(`[Surfer] Config ${file} file not found, using default values.`);
         }
     } catch (error) {
-        console.error('[Surfer] Error loading config file:', error);
+        console.error(`[Surfer] Error loading config ${file} file:`, error);
     }
 }
 
 // Load initial configuration
-loadConfig();
+loadConfig('config.json',config);
+loadConfig('browser_deep_config.json',browserConfig);
 
 // Default User-Agent (if `user_agent.txt` is missing)
 let userAgent = null;
@@ -88,19 +99,36 @@ loadFromFile('whitelist.txt', whitelistDomains);
 loadFromFile('surfbar_links.txt', startURLs);
 
 // Optimize process settings
-if(config.RENDER_PROCESS_LIMIT > 0) {
-    app.commandLine.appendSwitch('renderer-process-limit', config.RENDER_PROCESS_LIMIT.toString());
+if (browserConfig.disableSiteIsolationTrials) {
+    app.commandLine.appendSwitch('disable-site-isolation-trials');
 }
-app.commandLine.appendSwitch('disable-site-isolation-trials');
-app.commandLine.appendSwitch('disable-gpu-process-prelaunch');
-app.commandLine.appendSwitch('disable-renderer-backgrounding');
-app.commandLine.appendSwitch('enable-low-end-device-mode');
-app.commandLine.appendSwitch('disable-accelerated-2d-canvas');
-
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-software-rasterizer');
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-gpu-compositing');
+if (browserConfig.disableGpuProcessPrelaunch) {
+    app.commandLine.appendSwitch('disable-gpu-process-prelaunch');
+}
+if (browserConfig.disableRendererBackgrounding) {
+    app.commandLine.appendSwitch('disable-renderer-backgrounding');
+}
+if (browserConfig.enableLowEndDeviceMode) {
+    app.commandLine.appendSwitch('enable-low-end-device-mode');
+}
+if (browserConfig.disableAccelerated2DCanvas) {
+    app.commandLine.appendSwitch('disable-accelerated-2d-canvas');
+}
+if (browserConfig.disableHardwareAcceleration) {
+    app.disableHardwareAcceleration();
+}
+if (browserConfig.disableSoftwareRasterizer) {
+    app.commandLine.appendSwitch('disable-software-rasterizer');
+}
+if (browserConfig.disableGpu) {
+    app.commandLine.appendSwitch('disable-gpu');
+}
+if (browserConfig.disableGpuCompositing) {
+    app.commandLine.appendSwitch('disable-gpu-compositing');
+}
+if (typeof browserConfig.rendererProcessLimit === 'number' && browserConfig.rendererProcessLimit > 0) {
+    app.commandLine.appendSwitch('renderer-process-limit', browserConfig.rendererProcessLimit.toString());
+}
 
 // Helper function to extract domain from URL
 function getDomain(url) {
