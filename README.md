@@ -1,4 +1,4 @@
-# Surfer v0.04
+# Surfer v0.05
 
 Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.
 
