@@ -195,30 +195,33 @@ let exceedCount = 0;
 function monitorSystemPerformance() {
     setInterval(() => {
         osu.cpuUsage((cpu) => {
-            let cpuUsage = (cpu * 100).toFixed(2); // CPU in percent
-            let ramUsage = ((1 - osu.freememPercentage()) * 100).toFixed(2); // RAM in percent
+            // Calculate CPU and RAM usage in percentage
+            let cpuUsage = (cpu * 100).toFixed(2); // CPU usage in %
+            let ramUsage = ((1 - osu.freememPercentage()) * 100).toFixed(2); // RAM usage in %
 
-            // Check if CPU or RAM usage exceeds warning level
-            if (cpuUsage > config.OVERLOAD_WARNING_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
+            // Check if CPU or RAM usage exceeds the WARNING level
+            if (cpuUsage > config.OVERLOAD_WARNING_CPU || ramUsage > config.OVERLOAD_WARNING_RAM) {
                 console.log(`Attention: System-CPU: ${cpuUsage}% | System-RAM: ${ramUsage}%`);
+            }
 
-                // Check if CPU or RAM usage exceeds the overload threshold
-                if (cpuUsage > config.OVERLOAD_THRESHOLD_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
-                    exceedCount++;
-                    console.log(`Warning: ${exceedCount}/${config.OVERLOAD_EXCEED_LIMIT} - System overload detected.`);
-                } else {
-                    exceedCount = 0; // Reset counter if below threshold
-                }
+            // Check if CPU or RAM usage exceeds the CRITICAL THRESHOLD
+            if (cpuUsage > config.OVERLOAD_THRESHOLD_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
+                // Increment the exceedCount if the threshold is exceeded
+                exceedCount++;
+                console.log(`Warning: ${exceedCount}/${config.OVERLOAD_EXCEED_LIMIT} - System overload detected.`);
+            } else {
+                // Reset the counter if usage falls below the critical threshold
+                exceedCount = 0;
+            }
 
-                // If exceed count reaches the limit, reload all windows
-                if (exceedCount >= config.OVERLOAD_EXCEED_LIMIT) {
-                    console.log(`Threshold exceeded! Reloading all windows.`);
-                    BrowserWindow.getAllWindows().forEach(win => win.reload());
-                    exceedCount = 0; // Reset counter after reload
-                }
+            // If exceedCount reaches the limit, reload all windows
+            if (exceedCount >= config.OVERLOAD_EXCEED_LIMIT) {
+                console.log(`Threshold exceeded! Reloading all windows.`);
+                BrowserWindow.getAllWindows().forEach(win => win.reload());
+                exceedCount = 0; // Reset the counter after reloading
             }
         });
-    }, config.OVERLOAD_CHECK_INTERVAL*1000);
+    }, config.OVERLOAD_CHECK_INTERVAL * 1000); // Check interval in milliseconds
 }
 
 app.whenReady().then(() => {
