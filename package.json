@@ -1,0 +1,16 @@
+{
+  "name": "Surfer",
+  "version": "0.02",
+  "description": "Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^34.1.1",
+    "os-utils": "^0.0.14"
+  }
+}
