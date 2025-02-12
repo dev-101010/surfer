@@ -1,19 +1,17 @@
 @echo off
-setlocal
+chcp 65001 >nul
+setlocal enabledelayedexpansion
 
-:: Set the desired path where main.js is located
 cd /d "%~dp0"
 
-:: Check if Electron is installed
-where electron >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Electron not found, attempting to install...
-    npm install -g electron
+if not exist node_modules (
+    echo Installing dependencies...
+    call npm install || exit /b
 )
 
-:: Start Electron with main.js
-npx electron main.js
+echo Starting Electron...
+call npx electron main.js
 
-:: Pause for Windows
-echo Press any key to exit...
+echo.
+echo Electron has been closed. Press any key to exit...
 pause >nul

@@ -1,19 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 
-# Set the desired path where main.js is located
-PROJECT_PATH="$(dirname "$0")"
+# Set UTF-8 locale (only necessary if issues appear)
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
-# Change to the correct directory
-cd "$PROJECT_PATH" || { echo "Error: Directory not found!"; exit 1; }
+# Change directory to script location
+cd "$(dirname "$0")"
 
-# Check if Electron is installed
-if ! command -v electron &> /dev/null; then
-    echo "Electron not found, attempting to install..."
-    npm install -g electron
+# Ensure dependencies are installed
+if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install || exit 1
 fi
 
-# Start Electron with main.js
+# Start Electron
+echo "Starting Electron..."
 npx electron main.js
 
-# Pause for Linux/macOS (optional, keeps terminal open)
-read -p "Press Enter to exit..."
+# Keep window open if Electron crashes or exits
+echo
+echo "Electron has been closed. Press any key to exit..."
+read -n 1 -s -r
