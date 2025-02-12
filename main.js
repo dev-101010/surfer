@@ -19,11 +19,12 @@ let config = {
     BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
     BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
+    RENDERER_OVERLOAD_CHECK: true, // Check renderer for high CPU usage
     RELOAD_TIMER: 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
     OVERLOAD_ENABLED: true, // Enable or disable the system overload monitoring
     OVERLOAD_THRESHOLD_CPU: 90, // Threshold for CPU usage in %
     OVERLOAD_THRESHOLD_RAM: 90, // Maximum allowed system RAM usage in %
-    OVERLOAD_CHECK_INTERVAL: 5000, // Check interval in milliseconds (e.g., every 5 seconds)
+    OVERLOAD_CHECK_INTERVAL: 5, // Check interval in milliseconds (e.g., every 5 seconds)
     OVERLOAD_EXCEED_LIMIT: 3, // Number of consecutive exceedances before taking action
 };
 let browserConfig = {
@@ -158,6 +159,36 @@ function createLogger(win) {
     };
 }
 
+function monitorRenderer() {
+    setInterval(() => {
+        try {
+            const metrics = app.getAppMetrics();
+            const highCpuProcesses = metrics.filter(metric =>
+                metric.type === 'renderer' && metric.cpu && metric.cpu.percentCPUUsage > 90
+            );
+
+            if (highCpuProcesses.length > 0) {
+                console.warn('High CPU usage detected in renderer process(es):', highCpuProcesses);
+
+                const allWindows = BrowserWindow.getAllWindows();
+
+                highCpuProcesses.forEach(process => {
+                    const targetWindow = allWindows.find(win =>
+                        win.webContents.getProcessId() === process.pid
+                    );
+
+                    if (targetWindow) {
+                        console.warn(`Reloading window with PID: ${process.pid}`);
+                        targetWindow.reload();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error checking process metrics:', error);
+        }
+    }, 5000);
+}
+
 let exceedCount = 0;
 function monitorSystemPerformance() {
     setInterval(() => {
@@ -185,7 +216,7 @@ function monitorSystemPerformance() {
                 }
             }
         });
-    }, config.OVERLOAD_CHECK_INTERVAL);
+    }, config.OVERLOAD_CHECK_INTERVAL*1000);
 }
 
 app.whenReady().then(() => {
@@ -205,7 +236,7 @@ app.whenReady().then(() => {
             }
         });
 
-        const logger = createLogger(win);
+        const logger = win.logger = createLogger(win);
 
         // Set up the reload timer if RELOAD_TIMER is greater than 0
         if (config.RELOAD_TIMER > 0) {
@@ -411,6 +442,10 @@ app.whenReady().then(() => {
 
     if(config.OVERLOAD_ENABLED) {
         monitorSystemPerformance(); // Starting System-Monitoring
+    }
+
+    if(config.RENDERER_OVERLOAD_CHECK) {
+        monitorRenderer();  // Starting Renderer-Monitoring
     }
 });
 

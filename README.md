@@ -1,4 +1,4 @@
-# Surfer v0.03
+# Surfer v0.04
 
 Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.
 
@@ -55,11 +55,12 @@ Below are the default settings available in `config.json`:
   "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
   "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
   "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
+  "RENDERER_OVERLOAD_CHECK": true, // Check renderer for high CPU usage
   "RELOAD_TIMER": 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
   "OVERLOAD_ENABLED": true, // Enable or disable the system overload monitoring
   "OVERLOAD_THRESHOLD_CPU": 90, // Threshold for CPU usage in %
   "OVERLOAD_THRESHOLD_RAM": 90, // Maximum allowed system RAM usage in %
-  "OVERLOAD_CHECK_INTERVAL": 5000, // Check interval in milliseconds (e.g., every 5 seconds)
+  "OVERLOAD_CHECK_INTERVAL": 5, // Check interval in seconds (e.g., every 5 seconds)
   "OVERLOAD_EXCEED_LIMIT": 3 // Number of consecutive exceedances before taking action
 }
 ```
