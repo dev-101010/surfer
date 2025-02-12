@@ -24,7 +24,7 @@ let config = {
     OVERLOAD_ENABLED: true, // Enable or disable the system overload monitoring
     OVERLOAD_THRESHOLD_CPU: 90, // Threshold for CPU usage in %
     OVERLOAD_THRESHOLD_RAM: 90, // Maximum allowed system RAM usage in %
-    OVERLOAD_CHECK_INTERVAL: 5, // Check interval in milliseconds (e.g., every 5 seconds)
+    OVERLOAD_CHECK_INTERVAL: 5, // Check interval in seconds (e.g., every 5 seconds)
     OVERLOAD_EXCEED_LIMIT: 3, // Number of consecutive exceedances before taking action
 };
 let browserConfig = {
