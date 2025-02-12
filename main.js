@@ -43,6 +43,35 @@ let browserConfig = {
 }
 // DO NOT EDIT - Overwritten by config file
 
+const colors = {
+    reset: '\x1b[0m',  // Zurücksetzen der Farbe
+    black: '\x1b[30m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+    brightBlack: '\x1b[90m',  // Helles Schwarz (oft als Grau interpretiert)
+    brightRed: '\x1b[91m',
+    brightGreen: '\x1b[92m',
+    brightYellow: '\x1b[93m',
+    brightBlue: '\x1b[94m',
+    brightMagenta: '\x1b[95m',
+    brightCyan: '\x1b[96m',
+    brightWhite: '\x1b[97m'
+};
+function colorize(text, color) {
+    // Check if the text is an object (including arrays) and not null
+    if (typeof text === 'object' && text !== null) {
+        // If it is an object or array, convert it to a formatted JSON string
+        text = JSON.stringify(text, null, 2);
+    }
+    // Apply the color and reset sequence, then return the formatted text
+    return `${color}${text}${colors.reset}`;
+}
+
 // Load configuration from `config.json`
 function loadConfig(file, target) {
     try {
@@ -51,12 +80,15 @@ function loadConfig(file, target) {
             const data = fs.readFileSync(filePath, 'utf-8');
             const parsedConfig = JSON.parse(data);
             target = { ...target, ...parsedConfig };
-            console.log(`[Surfer] Config ${file} loaded:`, target);
+            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings from',colors.green)} ${colorize(file,colors.cyan)} ${colorize('loaded:',colors.green)}`);
+            console.log(colorize(target,colors.blue));
         } else {
-            console.warn(`[Surfer] Config ${file} file not found, using default values.`);
+            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(file,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
+            console.log(colorize(target,colors.blue));
         }
-    } catch (error) {
-        console.error(`[Surfer] Error loading config ${file} file:`, error);
+    } catch (ignore) {
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(file,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
+        console.log(colorize(target,colors.blue));
     }
 }
 
@@ -73,12 +105,13 @@ function loadUserAgent() {
         const ua = fs.readFileSync(path.join(CONFIG_DIR, 'user_agent.txt'), 'utf-8').trim();
         if (ua && ua.length > 0) {
             userAgent = ua;
-            console.log(`[Surfer] Loaded User-Agent from config/user_agent.txt: ${userAgent}`);
+            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('User-Agent from',colors.green)} ${colorize('user_agent.txt',colors.cyan)} ${colorize('loaded:',colors.green)}`);
+            console.log(colorize(userAgent,colors.blue));
         } else {
-            console.warn(`[Surfer] Could not load user_agent.txt, using default User-Agent.`);
+            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize('user_agent.txt',colors.cyan)} ${colorize(', using default User-Agent.',colors.red)}`);
         }
     } catch (error) {
-        console.warn(`[Surfer] Could not load user_agent.txt, using default User-Agent.`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize('user_agent.txt',colors.cyan)} ${colorize(', using default User-Agent.',colors.red)}`);
     }
 }
 
@@ -91,9 +124,10 @@ function loadFromFile(filename, targetSet) {
             let domain = line.trim().toLowerCase();
             if (domain) targetSet.add(domain);
         }
-        console.log(`[Surfer] Loaded ${targetSet.size} entries from config/${filename}`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Loaded',colors.green)} ${colorize(targetSet.size,colors.cyan)} ${colorize('entries from',colors.green)} ${colorize(filename,colors.cyan)}${colorize(':',colors.green)}`);
+        console.log(colorize(Array.from(targetSet),colors.blue));
     } catch (error) {
-        console.error(`[Surfer] Error loading config/${filename}:`, error);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize(filename,colors.cyan)}${colorize('.',colors.red)}`);
     }
 }
 
@@ -107,6 +141,8 @@ loadFromFile('blocked_domains.txt', blockedDomains);
 loadFromFile('blocked_extensions.txt', blockedExtensions);
 loadFromFile('whitelist.txt', whitelistDomains);
 loadFromFile('surfbar_links.txt', startURLs);
+
+app.commandLine.appendSwitch('disable-logging'); //disable chromium logs
 
 // Optimize process settings
 if (browserConfig.disableSiteIsolationTrials) {
@@ -152,12 +188,12 @@ function getDomain(url) {
 
 // Custom logger to prepend domain to log messages
 function createLogger(win) {
-    return (message) => {
+    return (message,color) => {
         const domain = getDomain(win.webContents.getURL());
         if(domain !== 'unknown')
-            console.log(`[${domain}] ${message}`);
+            console.log(`${colorize('['+domain+']',colors.magenta)} ${colorize(message,color)}`);
         else
-            console.log(`[Surfer] ${message}`);
+            console.log(`${colorize('[Unknown]',colors.magenta)} ${colorize(message,color)}`);
     };
 }
 
@@ -170,7 +206,8 @@ function monitorRenderer() {
             );
 
             if (highCpuProcesses.length > 0) {
-                console.warn('High CPU usage detected in renderer process(es):', highCpuProcesses);
+                console.log( `${colorize('[Surfer]', colors.magenta)} ${colorize('High CPU usage detected in renderer process(es):', colors.yellow)}`);
+                console.log(`${colorize(highCpuProcesses,colors.blue)}`)
 
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -180,13 +217,17 @@ function monitorRenderer() {
                     );
 
                     if (targetWindow) {
-                        console.warn(`Reloading window with PID: ${process.pid}`);
+                        console.log(
+                            `${colorize('[Surfer]', colors.magenta)} ${colorize(`Reloading window with PID: ${process.pid}`, colors.red)}`
+                        );
                         targetWindow.reload();
                     }
                 });
             }
         } catch (error) {
-            console.error('Error checking process metrics:', error);
+            console.log(
+                `${colorize('[Surfer]', colors.magenta)} ${colorize(`Error checking process metrics: ${error}`, colors.red)}`
+            );
         }
     }, 5000);
 }
@@ -201,14 +242,14 @@ function monitorSystemPerformance() {
 
             // Check if CPU or RAM usage exceeds the WARNING level
             if (cpuUsage > config.OVERLOAD_WARNING_CPU || ramUsage > config.OVERLOAD_WARNING_RAM) {
-                console.log(`Attention: System-CPU: ${cpuUsage}% | System-RAM: ${ramUsage}%`);
+                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Attention: System-CPU: '+cpuUsage+'% | System-RAM: '+ramUsage+'%)',colors.yellow)}`);
             }
 
             // Check if CPU or RAM usage exceeds the CRITICAL THRESHOLD
             if (cpuUsage > config.OVERLOAD_THRESHOLD_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
                 // Increment the exceedCount if the threshold is exceeded
                 exceedCount++;
-                console.log(`Warning: ${exceedCount}/${config.OVERLOAD_EXCEED_LIMIT} - System overload detected.`);
+                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Warning: '+exceedCount+'/'+config.OVERLOAD_EXCEED_LIMIT+' - System overload detected.', colors.yellow)}`);
             } else {
                 // Reset the counter if usage falls below the critical threshold
                 exceedCount = 0;
@@ -216,7 +257,7 @@ function monitorSystemPerformance() {
 
             // If exceedCount reaches the limit, reload all windows
             if (exceedCount >= config.OVERLOAD_EXCEED_LIMIT) {
-                console.log(`Threshold exceeded! Reloading all windows.`);
+                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Threshold exceeded! Reloading all windows.',colors.red)}`);
                 BrowserWindow.getAllWindows().forEach(win => win.reload());
                 exceedCount = 0; // Reset the counter after reloading
             }
@@ -241,12 +282,12 @@ app.whenReady().then(() => {
             }
         });
 
-        const logger = win.logger = createLogger(win);
+        const logger = createLogger(win);
 
         // Set up the reload timer if RELOAD_TIMER is greater than 0
         if (config.RELOAD_TIMER > 0) {
             setInterval(() => {
-                logger(`Reloading page after ${config.RELOAD_TIMER} seconds...`);
+                logger(`Reloading page after ${config.RELOAD_TIMER} seconds...`, colors.green);
                 win.webContents.reload();
             }, config.RELOAD_TIMER * 1000);
         }
@@ -259,7 +300,7 @@ app.whenReady().then(() => {
                 if (details.resourceType === 'subFrame') {
                     let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
                     if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
+                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`,colors.brightBlack);
                         return callback({cancel: true});
                     }
                 }
@@ -277,7 +318,7 @@ app.whenReady().then(() => {
                 if (details.responseHeaders && details.responseHeaders['content-type']) {
                     let contentType = details.responseHeaders['content-type'][0].toLowerCase();
                     if (contentType.includes('video') || contentType.includes('audio')) {
-                        logger(`Blocked media content based on Content-Type: ${url}`);
+                        logger(`Blocked media content based on Content-Type: ${url}`,colors.brightBlack);
                         return callback({cancel: true});
                     }
                 }
@@ -286,7 +327,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_DOMAINS) {
                 // Block blacklisted domains
                 if ([...blockedDomains].some(domain => url.includes(domain))) {
-                    logger(`Blocked domain from blacklist: ${url}`);
+                    logger(`Blocked domain from blacklist: ${url}`,colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -294,7 +335,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_EXTENSIONS) {
                 // Block specific file extensions
                 if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                    logger(`Blocked file extension: ${url}`);
+                    logger(`Blocked file extension: ${url}`,colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -304,14 +345,14 @@ app.whenReady().then(() => {
         });
 
         win.webContents.on('page-title-updated', (event, title) => {
-            logger(`Update: ${title}`);
+            logger(`Update: ${title}`,colors.green);
         });
 
         win.webContents.setWindowOpenHandler((details) => {
             if(config.BLOCK_NOT_WHITELISTED_POPUPS) {
                 let senderFrame = details.referrer;
                 if (!senderFrame) {
-                    logger(`Blocked pop-up from unknown Sender to: ${details.url}`);
+                    logger(`Blocked pop-up from unknown Sender to: ${details.url}`,colors.brightBlack);
                     return {action: 'deny'};
                 }
 
@@ -320,7 +361,7 @@ app.whenReady().then(() => {
                 if (whitelistDomains.has(senderDomain)) {
                     return {action: 'allow'};
                 } else {
-                    logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`);
+                    logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`, colors.brightBlack);
                     return {action: 'deny'};
                 }
             }
@@ -332,7 +373,7 @@ app.whenReady().then(() => {
                 let currentDomain = getDomain(win.webContents.getURL());
                 let targetDomain = getDomain(newURL);
                 if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
-                    logger(`Blocked navigation from ${currentDomain} to: ${newURL}`);
+                    logger(`Blocked navigation from ${currentDomain} to: ${newURL}`,colors.brightBlack);
                     event.preventDefault();
                 }
             }
@@ -346,7 +387,7 @@ app.whenReady().then(() => {
                 if (details.resourceType === 'subFrame') {
                     let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
                     if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`);
+                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`,colors.brightBlack);
                         return callback({cancel: true});
                     }
                 }
@@ -362,7 +403,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_MEDIA) {
                 // Block audio and video content before it loads
                 if (['media', 'object'].includes(details.resourceType)) {
-                    logger(`Blocked media content (Audio/Video): ${url}`);
+                    logger(`Blocked media content (Audio/Video): ${url}`,colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -370,7 +411,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_DOMAINS) {
                 // Block requests from blacklisted domains
                 if ([...blockedDomains].some(domain => url.includes(domain))) {
-                    logger(`Blocked domain from blacklist: ${url}`);
+                    logger(`Blocked domain from blacklist: ${url}`, colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -378,7 +419,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_EXTENSIONS) {
                 // Block specific file extensions
                 if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                    logger(`Blocked file extension: ${url}`);
+                    logger(`Blocked file extension: ${url}`,colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -386,7 +427,7 @@ app.whenReady().then(() => {
             if(config.BLOCK_OTHER_URL_TYPES) {
                 // Block specific URL types like blob:, base64:, and WebSockets
                 if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
-                    logger(`Blocked special URL type: ${url}`);
+                    logger(`Blocked special URL type: ${url}`,colors.brightBlack);
                     return callback({cancel: true});
                 }
             }
@@ -397,7 +438,7 @@ app.whenReady().then(() => {
 
         win.webContents.session.on('will-download', (event, item) => {
             if (config.BLOCK_DOWNLOADS) {
-                logger(`Blocked download: ${item.getURL()}`);
+                logger(`Blocked download: ${item.getURL()}`,colors.brightBlack);
                 event.preventDefault();
             }
         });
@@ -442,7 +483,7 @@ app.whenReady().then(() => {
 
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
-        console.error(`Please add your surf links in "config/surfbar_links.txt" and restart.`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} Please add your surf links in "config/surfbar_links.txt" and restart.`);
     }
 
     if(config.OVERLOAD_ENABLED) {
@@ -461,16 +502,20 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-    console.log('Application is quitting...');
+    console.log(`${colorize('[System]', colors.magenta)} ${colorize('Application is quitting...',colors.green)}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.close();
     });
 });
 
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    console.log(
+        `${colorize('[System]', colors.magenta)} ${colorize(`Uncaught Exception: ${error}`, colors.red)}`
+    );
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    console.log(
+        `${colorize('[System]', colors.magenta)} ${colorize(`Unhandled Rejection at: ${promise}`, colors.yellow)} ${colorize('Reason:', colors.yellow)} ${colorize(reason, colors.red)}`
+    );
 });
