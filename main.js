@@ -1,4 +1,5 @@
 const { app, BrowserWindow, session } = require('electron');
+const osu = require('os-utils');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,6 +20,11 @@ let config = {
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
     BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
     RELOAD_TIMER: 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
+    OVERLOAD_ENABLED: true, // Enable or disable the system overload monitoring
+    OVERLOAD_THRESHOLD_CPU: 90, // Threshold for CPU usage in %
+    OVERLOAD_THRESHOLD_RAM: 90, // Maximum allowed system RAM usage in %
+    OVERLOAD_CHECK_INTERVAL: 5000, // Check interval in milliseconds (e.g., every 5 seconds)
+    OVERLOAD_EXCEED_LIMIT: 3, // Number of consecutive exceedances before taking action
 };
 let browserConfig = {
     disableSiteIsolationTrials: true,
@@ -150,6 +156,36 @@ function createLogger(win) {
         else
             console.log(`[Surfer] ${message}`);
     };
+}
+
+let exceedCount = 0;
+function monitorSystemPerformance() {
+    setInterval(() => {
+        osu.cpuUsage((cpu) => {
+            let cpuUsage = (cpu * 100).toFixed(2); // CPU in percent
+            let ramUsage = ((1 - osu.freememPercentage()) * 100).toFixed(2); // RAM in percent
+
+            // Check if CPU or RAM usage exceeds 50%
+            if (cpuUsage > 50 || ramUsage > 50) {
+                console.log(`Attention: System-CPU: ${cpuUsage}% | System-RAM: ${ramUsage}%`);
+
+                // Check if CPU or RAM usage exceeds the overload threshold
+                if (cpuUsage > config.OVERLOAD_THRESHOLD_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
+                    exceedCount++;
+                    console.log(`Warning: ${exceedCount}/${config.OVERLOAD_EXCEED_LIMIT} - System overload detected.`);
+                } else {
+                    exceedCount = 0; // Reset counter if below threshold
+                }
+
+                // If exceed count reaches the limit, reload all windows
+                if (exceedCount >= config.OVERLOAD_EXCEED_LIMIT) {
+                    console.log(`Threshold exceeded! Reloading all windows.`);
+                    BrowserWindow.getAllWindows().forEach(win => win.reload());
+                    exceedCount = 0; // Reset counter after reload
+                }
+            }
+        });
+    }, config.OVERLOAD_CHECK_INTERVAL);
 }
 
 app.whenReady().then(() => {
@@ -371,6 +407,10 @@ app.whenReady().then(() => {
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
         console.error(`Please add your surf links in "config/surfbar_links.txt" and restart.`);
+    }
+
+    if(config.OVERLOAD_ENABLED) {
+        monitorSystemPerformance(); // Starting System-Monitoring
     }
 });
 
