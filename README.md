@@ -104,5 +104,5 @@ Below are the browser deep settings available in `browser_deep_config.json`:
    ./start.sh
     ```
 
-![surfer](https://github.com/user-attachments/assets/1c315729-4af3-4db4-b707-4bdc9b51c012)
 
+![surfer](https://github.com/user-attachments/assets/1c315729-4af3-4db4-b707-4bdc9b51c012)
