@@ -55,15 +55,15 @@ Below are the default settings available in `config.json`:
   "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
   "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
   "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
-  "RENDERER_OVERLOAD_CHECK": true, // Check renderer for high CPU usage
+  "RENDERER_OVERLOAD_CHECK": true, // Check renderer for high CPU usage (restart if renderer >90% CPU-Core)
   "RELOAD_TIMER": 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
-  "OVERLOAD_ENABLED": true, // Enable or disable the system overload monitoring
-  "OVERLOAD_WARNING_CPU": 50, // Warning for CPU usage in %
-  "OVERLOAD_WARNING_RAM": 50, // Warning for RAM usage in %
-  "OVERLOAD_THRESHOLD_CPU": 90, // Threshold for CPU usage in %
-  "OVERLOAD_THRESHOLD_RAM": 90, // Threshold for RAM usage in %
+  "OVERLOAD_ENABLED": true, // Enable or disable global overload monitoring
+  "OVERLOAD_WARNING_CPU": 50, // Warning for global CPU usage in %
+  "OVERLOAD_WARNING_RAM": 50, // Warning for global RAM usage in %
+  "OVERLOAD_THRESHOLD_CPU": 90, // Threshold for global CPU usage in %
+  "OVERLOAD_THRESHOLD_RAM": 90, // Threshold for global RAM usage in %
   "OVERLOAD_CHECK_INTERVAL": 5, // Check interval in seconds (e.g., every 5 seconds)
-  "OVERLOAD_EXCEED_LIMIT": 3 // Number of consecutive exceedances before taking action
+  "OVERLOAD_EXCEED_LIMIT": 3 // Number of consecutive exceedances before reload all windows
 }
 ```
 
