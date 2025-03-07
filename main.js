@@ -180,7 +180,7 @@ if (typeof browserConfig.rendererProcessLimit === 'number' && browserConfig.rend
 function getDomain(url) {
     try {
         const urlObj = new URL(url);
-        return urlObj.hostname;
+        return urlObj.hostname.replace(/^www\./, ''); // removes "www."
     } catch (error) {
         return 'unknown';
     }
