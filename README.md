@@ -1,4 +1,4 @@
-# Surfer v0.07
+# Surfer v0.08
 
 Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.
 
@@ -27,14 +27,37 @@ Extract the downloaded ZIP file to a directory of your choice.
 
 ---
 
-### Step 4: Configure Surfbar Link
+### Windows
+1. Open the extracted directory.
+2. Double-click on `start.bat` to run the script.
+3. If asked, allow to execute.
+
+### Linux and macOS
+1. Open a terminal and navigate to the extracted directory.
+2. Run the following command to execute the script:
+   ###### First start, make executable:
+   ```bash
+   chmod +x start.sh
+   ```
+   ###### Start:
+   ```bash
+   ./start.sh
+    ```
+
+### Step 4: Cold boot (creates config files, if not already exists)
+1. Start Surfer with start.bat (Windows) or start.sh (Linux, Mac).
+2. Wait until console say: Please add your surf links in "config/surfbar_links.txt" and restart.
+
+---
+
+### Step 5: Configure Surfbar Link
 1. Navigate to the `config` directory.
 2. Open the `surfbar_links.txt` file.
 3. Add your Surfbar links to the file and save it. (line by line)
 
 ---
 
-### Step 5: Configure Surfer (Optional)
+### Step 6: Configure Surfer (Optional)
 
 1. Navigate to the `config` directory.
 2. Open the `config.json` file.
@@ -82,27 +105,6 @@ Below are the browser deep settings available in `browser_deep_config.json`:
   "rendererProcessLimit": 4 // 1 window - 4 processes are okay, for more windows you need some more
 }
 ```
-
----
-
-## Usage
-
-### Windows
-1. Open the extracted directory.
-2. Double-click on `start.bat` to run the script.
-3. If asked, allow to execute.
-
-### Linux and macOS
-1. Open a terminal and navigate to the extracted directory.
-2. Run the following command to execute the script:
-   ###### First start, make executable:
-   ```bash
-   chmod +x start.sh
-   ```
-   ###### Start:
-   ```bash
-   ./start.sh
-    ```
 
 
 ![surfer](https://github.com/user-attachments/assets/1c315729-4af3-4db4-b707-4bdc9b51c012)
