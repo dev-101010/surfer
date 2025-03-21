@@ -27,6 +27,10 @@ Extract the downloaded ZIP file to a directory of your choice.
 
 ---
 
+### Step 4: Cold boot (creates config files, if not already exists)
+1. Start Surfer with start.bat (Windows) or start.sh (Linux, Mac).
+2. Wait until console say: Please add your surf links in "config/surfbar_links.txt" and restart.
+
 ### Windows
 1. Open the extracted directory.
 2. Double-click on `start.bat` to run the script.
@@ -43,10 +47,6 @@ Extract the downloaded ZIP file to a directory of your choice.
    ```bash
    ./start.sh
     ```
-
-### Step 4: Cold boot (creates config files, if not already exists)
-1. Start Surfer with start.bat (Windows) or start.sh (Linux, Mac).
-2. Wait until console say: Please add your surf links in "config/surfbar_links.txt" and restart.
 
 ---
 
