@@ -5,31 +5,39 @@ const path = require('path');
 
 // Path to the `config/` folder and `config.json`
 const CONFIG_DIR = path.join(__dirname, 'config');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+const BROWSER_CONFIG_FILE = path.join(CONFIG_DIR, 'browser_deep_config.json');
+const WHITELIST_FILE = path.join(CONFIG_DIR, 'whitelist.txt');
+const BLOCKED_DOMAINS_FILE = path.join(CONFIG_DIR, 'blocked_domains.txt');
+const BLOCKED_EXTENSIONS_FILE = path.join(CONFIG_DIR, 'blocked_extensions.txt');
+const SURFBAR_LINKS_FILE = path.join(CONFIG_DIR, 'surfbar_links.txt');
+const USER_AGENT_FILE = path.join(CONFIG_DIR, 'user_agent.txt');
 
-// Default configuration values
 // DO NOT EDIT - Overwritten by config file
-let config = {
-    MAX_IFRAME_DEPTH: 3,  // Maximum allowed iframe nesting depth
-    JS_CHECK_ENABLED: true, // Enable or disable additional JavaScript checks
-    BLOCK_DOWNLOADS: true, // Enable or disable download block
-    BLOCK_MEDIA: true, // Enable or disable media block
-    BLOCK_OTHER_URL_TYPES: true, // Enable or disable blocking of other URL types ( e.g. wss:// )
-    ALLOW_WHITELIST: true, // Enable or disable whitelisted domains
-    BLOCK_DOMAINS: true, // Enable or disable blocked domains
-    BLOCK_EXTENSIONS: true, // Enable or disable blocked extensions
-    BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true, // Block navigation in window to other domains
-    BLOCK_NOT_WHITELISTED_POPUPS: true, // Block popups from not whitelisted domains
-    RENDERER_OVERLOAD_CHECK: true, // Check renderer for high CPU usage
-    RELOAD_TIMER: 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
-    OVERLOAD_ENABLED: true, // Enable or disable the system overload monitoring
-    OVERLOAD_WARNING_CPU: 50, // Warning for CPU usage in %
-    OVERLOAD_WARNING_RAM: 50, // Warning for RAM usage in %
-    OVERLOAD_THRESHOLD_CPU: 90, // Threshold for CPU usage in %
-    OVERLOAD_THRESHOLD_RAM: 90, // Threshold for RAM usage in %
-    OVERLOAD_CHECK_INTERVAL: 5, // Check interval in seconds (e.g., every 5 seconds)
-    OVERLOAD_EXCEED_LIMIT: 3, // Number of consecutive exceedances before taking action
+// Default configuration values
+const defaultConfig = {
+    MAX_IFRAME_DEPTH: 3,
+    JS_CHECK_ENABLED: true,
+    BLOCK_DOWNLOADS: true,
+    BLOCK_MEDIA: true,
+    BLOCK_OTHER_URL_TYPES: true,
+    ALLOW_WHITELIST: true,
+    BLOCK_DOMAINS: true,
+    BLOCK_EXTENSIONS: true,
+    BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true,
+    BLOCK_NOT_WHITELISTED_POPUPS: true,
+    RENDERER_OVERLOAD_CHECK: true,
+    RELOAD_TIMER: 0,
+    OVERLOAD_ENABLED: true,
+    OVERLOAD_WARNING_CPU: 50,
+    OVERLOAD_WARNING_RAM: 50,
+    OVERLOAD_THRESHOLD_CPU: 90,
+    OVERLOAD_THRESHOLD_RAM: 90,
+    OVERLOAD_CHECK_INTERVAL: 5,
+    OVERLOAD_EXCEED_LIMIT: 3,
 };
-let browserConfig = {
+
+const defaultBrowserConfig = {
     disableSiteIsolationTrials: true,
     disableGpuProcessPrelaunch: true,
     disableRendererBackgrounding: true,
@@ -39,9 +47,58 @@ let browserConfig = {
     disableSoftwareRasterizer: true,
     disableGpu: true,
     disableGpuCompositing: true,
-    rendererProcessLimit: 4
-}
+    rendererProcessLimit: 4,
+};
+
+const defaultWhitelist = ["shimly.de", "shimly.net"].join('\n');
+const defaultBlockedDomains = [
+    "youtube.com",
+    "netflix.com",
+    "twitch.tv",
+    "dailymotion.com",
+    "spotify.com"
+].join('\n');
+const defaultBlockedExtensions = [
+    ".m3u8",
+    ".mpd",
+    ".mp3",
+    ".mp4",
+    ".ogg",
+    ".wav",
+    ".webm",
+    ".mkv",
+    ".flac",
+    ".avi"
+].join('\n');
+const defaultSurfbarLinks = "";
+const defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0";
 // DO NOT EDIT - Overwritten by config file
+
+let config = { ...defaultConfig };
+let browserConfig = { ...defaultBrowserConfig };
+
+// Function to create config file if missing
+function ensureConfigFile(filePath, defaultData) {
+    if (!fs.existsSync(CONFIG_DIR)) {
+        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        console.log(`[Surfer] Created config directory: ${CONFIG_DIR}`);
+    }
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 4), 'utf-8');
+        console.log(`[Surfer] Created default config file: ${filePath}`);
+    }
+}
+
+// Function to create text files if missing
+function ensureTextFile(filePath, defaultContent) {
+    if (!fs.existsSync(CONFIG_DIR)) {
+        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, defaultContent, 'utf-8');
+        console.log(`[Surfer] Created default text file: ${filePath}`);
+    }
+}
 
 const colors = {
     reset: '\x1b[0m',  // Zurücksetzen der Farbe
@@ -62,6 +119,7 @@ const colors = {
     brightCyan: '\x1b[96m',
     brightWhite: '\x1b[97m'
 };
+
 function colorize(text, color) {
     // Check if the text is an object (including arrays) and not null
     if (typeof text === 'object' && text !== null) {
@@ -73,28 +131,28 @@ function colorize(text, color) {
 }
 
 // Load configuration from `config.json`
-function loadConfig(file, target) {
+function loadConfig(filePath, target, defaultData) {
+    ensureConfigFile(filePath, defaultData); // Ensure the file exists before loading
     try {
-        const filePath = path.join(CONFIG_DIR, file);
-        if (fs.existsSync(filePath)) {
-            const data = fs.readFileSync(filePath, 'utf-8');
-            const parsedConfig = JSON.parse(data);
-            target = { ...target, ...parsedConfig };
-            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings from',colors.green)} ${colorize(file,colors.cyan)} ${colorize('loaded:',colors.green)}`);
-            console.log(colorize(target,colors.blue));
-        } else {
-            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(file,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
-            console.log(colorize(target,colors.blue));
-        }
-    } catch (ignore) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(file,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
+        const data = fs.readFileSync(filePath, 'utf-8');
+        const parsedConfig = JSON.parse(data);
+        Object.assign(target, parsedConfig);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings from',colors.green)} ${colorize(filePath,colors.cyan)} ${colorize('loaded:',colors.green)}`);
+        console.log(colorize(target,colors.blue));
+    } catch (error) {
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(filePath,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
         console.log(colorize(target,colors.blue));
     }
 }
 
-// Load initial configuration
-loadConfig('config.json',config);
-loadConfig('browser_deep_config.json',browserConfig);
+// Ensure config and text files exist
+loadConfig(CONFIG_FILE, config, defaultConfig);
+loadConfig(BROWSER_CONFIG_FILE, browserConfig, defaultBrowserConfig);
+ensureTextFile(WHITELIST_FILE, defaultWhitelist);
+ensureTextFile(BLOCKED_DOMAINS_FILE, defaultBlockedDomains);
+ensureTextFile(BLOCKED_EXTENSIONS_FILE, defaultBlockedExtensions);
+ensureTextFile(SURFBAR_LINKS_FILE, defaultSurfbarLinks);
+ensureTextFile(USER_AGENT_FILE, defaultUserAgent);
 
 // Default User-Agent (if `user_agent.txt` is missing)
 let userAgent = null;
