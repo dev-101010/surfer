@@ -16,6 +16,8 @@ const USER_AGENT_FILE = path.join(CONFIG_DIR, 'user_agent.txt');
 // DO NOT EDIT - Overwritten by config file
 // Default configuration values
 const defaultConfig = {
+    WINDOW_WIDTH: 1280,
+    WINDOW_HEIGHT: 720,
     MAX_IFRAME_DEPTH: 3,
     JS_CHECK_ENABLED: true,
     BLOCK_DOWNLOADS: true,
@@ -345,7 +347,7 @@ app.whenReady().then(() => {
     startURLs.forEach(url => {
 
         let win = new BrowserWindow({
-            width: 1280, height: 720, backgroundThrottling: true, webPreferences: {
+            width: config.WINDOW_WIDTH, height: config.WINDOW_HEIGHT, backgroundThrottling: true, webPreferences: {
                 sandbox: false,
                 nodeIntegration: false,
                 contextIsolation: true,
