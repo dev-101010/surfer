@@ -34,7 +34,7 @@ const defaultConfig = {
     OVERLOAD_THRESHOLD_CPU: 90,
     OVERLOAD_THRESHOLD_RAM: 90,
     OVERLOAD_CHECK_INTERVAL: 5,
-    OVERLOAD_EXCEED_LIMIT: 3,
+    OVERLOAD_EXCEED_LIMIT: 3
 };
 
 const defaultBrowserConfig = {
@@ -81,11 +81,11 @@ let browserConfig = { ...defaultBrowserConfig };
 function ensureConfigFile(filePath, defaultData) {
     if (!fs.existsSync(CONFIG_DIR)) {
         fs.mkdirSync(CONFIG_DIR, { recursive: true });
-        console.log(`[Surfer] Created config directory: ${CONFIG_DIR}`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created config directory:',colors.green)} ${colorize(CONFIG_DIR,colors.cyan)}`);
     }
     if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 4), 'utf-8');
-        console.log(`[Surfer] Created default config file: ${filePath}`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created default config file:',colors.green)} ${colorize(filePath,colors.cyan)}`);
     }
 }
 
@@ -96,7 +96,7 @@ function ensureTextFile(filePath, defaultContent) {
     }
     if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, defaultContent, 'utf-8');
-        console.log(`[Surfer] Created default text file: ${filePath}`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created default text file:',colors.green)} ${colorize(filePath,colors.cyan)}`);
     }
 }
 
@@ -136,6 +136,23 @@ function loadConfig(filePath, target, defaultData) {
     try {
         const data = fs.readFileSync(filePath, 'utf-8');
         const parsedConfig = JSON.parse(data);
+
+        let updated = false;
+
+        // Merge default values without overwriting existing ones
+        for (const [key, value] of Object.entries(defaultData)) {
+            if (!(key in parsedConfig)) {
+                parsedConfig[key] = value;
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            fs.writeFileSync(filePath, JSON.stringify(parsedConfig, null, 4), 'utf-8');
+            console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Updated config file with new defaults:', colors.green)} ${colorize(filePath, colors.cyan)}`);
+        }
+
+        // Apply the merged config to the target object
         Object.assign(target, parsedConfig);
         console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings from',colors.green)} ${colorize(filePath,colors.cyan)} ${colorize('loaded:',colors.green)}`);
         console.log(colorize(target,colors.blue));
@@ -541,7 +558,7 @@ app.whenReady().then(() => {
 
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} Please add your surf links in "config/surfbar_links.txt" and restart.`);
+        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Please add your surf links in "config/surfbar_links.txt" and restart.',colors.red)}`);
     }
 
     if(config.OVERLOAD_ENABLED) {
@@ -560,7 +577,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-    console.log(`${colorize('[System]', colors.magenta)} ${colorize('Application is quitting...',colors.green)}`);
+    console.log(`${colorize('[System]', colors.magenta)} ${colorize('Application is quitting...',colors.red)}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.close();
     });
