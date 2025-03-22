@@ -21,7 +21,7 @@ const defaultConfig = {
     WINDOW_HEIGHT: 720,
     MAX_IFRAME_DEPTH: 3,
     CUSTOM_USER_AGENT: false,
-    JS_CHECK_ENABLED: false,
+    JS_CHECK_ENABLED: true,
     BLOCK_DOWNLOADS: true,
     BLOCK_MEDIA: true,
     BLOCK_OTHER_URL_TYPES: true,
