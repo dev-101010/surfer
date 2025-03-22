@@ -68,6 +68,8 @@ Extract the downloaded ZIP file to a directory of your choice.
 Below are the default settings available in `config.json`:
 ```json
 {
+  "WINDOW_WIDTH": 640, // Window width
+  "WINDOW_HEIGHT": 480, // Window height
   "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
   "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
   "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
@@ -87,6 +89,7 @@ Below are the default settings available in `config.json`:
   "OVERLOAD_THRESHOLD_RAM": 90, // Threshold for global RAM usage in %
   "OVERLOAD_CHECK_INTERVAL": 5, // Check interval in seconds (e.g., every 5 seconds)
   "OVERLOAD_EXCEED_LIMIT": 3 // Number of consecutive exceedances before reload all windows
+  "CUSTOM_USER_AGENT": false // Use custom user agent from user_agent.txt
 }
 ```
 
