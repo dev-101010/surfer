@@ -20,8 +20,10 @@ const defaultConfig = {
     WINDOW_WIDTH: 1280,
     WINDOW_HEIGHT: 720,
     MAX_IFRAME_DEPTH: 3,
+    BACKGROUND_THROTTLING: false,
     CUSTOM_USER_AGENT: false,
     JS_CHECK_ENABLED: true,
+    JS_FAKE_VISIBLE_ENABLED: true,
     BLOCK_DOWNLOADS: true,
     BLOCK_MEDIA: true,
     BLOCK_OTHER_URL_TYPES: true,
@@ -54,7 +56,7 @@ const defaultBrowserConfig = {
     rendererProcessLimit: 4,
 };
 
-const defaultWhitelist = ["shimly.de", "shimly.net", "ebesucher.de"].join('\n');
+const defaultWhitelist = ["shimly.de", "shimly.net"].join('\n');
 const defaultBlockedDomains = [
     "youtube.com",
     "netflix.com",
@@ -232,7 +234,7 @@ loadFromFile('captcha_whitelist.txt', captchaWhitelist);
 const windowSettings = {
     width: config.WINDOW_WIDTH,
     height: config.WINDOW_HEIGHT,
-    backgroundThrottling: true,
+    backgroundThrottling: config.BACKGROUND_THROTTLING,
     webPreferences: {
         sandbox: false,
         nodeIntegration: false,
@@ -242,6 +244,94 @@ const windowSettings = {
         disableBlinkFeatures: "MediaStream,EncryptedMedia",
         siteInstance: true,
         enableRemoteModule: false
+    }
+}
+
+function jsBlockElements(contents) {
+    if (config.JS_CHECK_ENABLED) {
+        contents.executeJavaScript(`
+            function getIframeDepth(iframe) {
+                let depth = 0;
+                while (iframe) {
+                    depth++;
+                    iframe = iframe.parentElement.closest("iframe");
+                }
+                return depth;
+            }
+            function blockElements() {
+                document.querySelectorAll('iframe[srcdoc]').forEach(el => {
+                    console.warn("JS blocked srcdoc iframe:", el);
+                    el.remove();
+                });
+                document.querySelectorAll('video, audio').forEach(el => {
+                    if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
+                        el.style.visibility = 'hidden';
+                        el.pause();
+                        el.remove();
+                    }
+                });
+            }
+            setInterval(blockElements, 1000);
+        `).then();
+    }
+}
+
+function jsApplyAntiVisibilityDetection(contents) {
+    if (config.JS_FAKE_VISIBLE_ENABLED) {
+        contents.executeJavaScript(`
+        (() => {
+            try {
+                // 1. Sichtbarkeit & Fokus faken
+                Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+                Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+                const originalAddEventListener = document.addEventListener;
+                document.addEventListener = function(type, listener, options) {
+                    if (type === 'visibilitychange') {
+                        console.warn('[Anti-Visibility] Blocked visibilitychange listener');
+                        return;
+                    }
+                    return originalAddEventListener.call(this, type, listener, options);
+                };
+
+                const originalWindowAddEventListener = window.addEventListener;
+                window.addEventListener = function(type, listener, options) {
+                    if (['blur', 'focus'].includes(type)) {
+                        console.warn('[Anti-Visibility] Blocked window ' + type + ' listener');
+                        return;
+                    }
+                    return originalWindowAddEventListener.call(this, type, listener, options);
+                };
+
+                window.hasFocus = () => true;
+
+                // 2. Mausbewegungssimulation
+                function simulateMouseMovement() {
+                    const event = new MouseEvent('mousemove', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: Math.floor(Math.random() * window.innerWidth),
+                        clientY: Math.floor(Math.random() * window.innerHeight)
+                    });
+                    document.dispatchEvent(event);
+                    console.log('[Anti-Visibility] Simulated mousemove at', event.clientX, event.clientY);
+                }
+
+                // 3. Intervall für Mausbewegung (alle 5–15 Sekunden)
+                setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        simulateMouseMovement();
+                    }
+                }, 5000 + Math.random() * 10000);
+
+                console.log('[Anti-Visibility] Patch + Mouse Simulation applied');
+            } catch (e) {
+                console.error('[Anti-Visibility] Error applying patch:', e);
+            }
+        })();
+    `).catch(err => {
+            console.error('[Anti-Visibility] Injection failed:', err);
+        });
     }
 }
 
@@ -573,34 +663,10 @@ app.on('web-contents-created', (event, contents) => {
         }
     });
 
-    if (config.JS_CHECK_ENABLED) {
-        contents.once('did-finish-load', () => {
-            contents.executeJavaScript(`
-                function getIframeDepth(iframe) {
-                    let depth = 0;
-                    while (iframe) {
-                        depth++;
-                        iframe = iframe.parentElement.closest("iframe");
-                    }
-                    return depth;
-                }
-                function blockElements() {
-                    document.querySelectorAll('iframe[srcdoc]').forEach(el => {
-                        console.warn("JS blocked srcdoc iframe:", el);
-                        el.remove();
-                    });
-                    document.querySelectorAll('video, audio').forEach(el => {
-                        if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
-                            el.style.visibility = 'hidden';
-                            el.pause();
-                            el.remove();
-                        }
-                    });
-                }
-                setInterval(blockElements, 1000);
-            `).then();
-        });
-    }
+    contents.once('did-finish-load', () => {
+        jsApplyAntiVisibilityDetection(contents);
+        jsBlockElements(contents)
+    });
 
     if (config.CUSTOM_USER_AGENT && userAgent) {
         contents.setUserAgent(userAgent);
