@@ -68,8 +68,8 @@ Extract the downloaded ZIP file to a directory of your choice.
 Below are the default settings available in `config.json`:
 ```json
 {
-  "WINDOW_WIDTH": 640, // Window width
-  "WINDOW_HEIGHT": 480, // Window height
+  "WINDOW_WIDTH": 1280, // Window width
+  "WINDOW_HEIGHT": 720, // Window height
   "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
   "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
   "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
@@ -80,9 +80,9 @@ Below are the default settings available in `config.json`:
   "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
   "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
   "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
-  "RENDERER_OVERLOAD_CHECK": true, // Check renderer for high CPU usage (restart if renderer >90% CPU-Core)
+  "RENDERER_OVERLOAD_CHECK": false, // Check renderer for high CPU usage (restart if renderer >90% CPU-Core)
   "RELOAD_TIMER": 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
-  "OVERLOAD_ENABLED": true, // Enable or disable global overload monitoring
+  "OVERLOAD_ENABLED": false, // Enable or disable global overload monitoring
   "OVERLOAD_WARNING_CPU": 50, // Warning for global CPU usage in %
   "OVERLOAD_WARNING_RAM": 50, // Warning for global RAM usage in %
   "OVERLOAD_THRESHOLD_CPU": 90, // Threshold for global CPU usage in %
