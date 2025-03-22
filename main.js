@@ -12,6 +12,7 @@ const BLOCKED_DOMAINS_FILE = path.join(CONFIG_DIR, 'blocked_domains.txt');
 const BLOCKED_EXTENSIONS_FILE = path.join(CONFIG_DIR, 'blocked_extensions.txt');
 const SURFBAR_LINKS_FILE = path.join(CONFIG_DIR, 'surfbar_links.txt');
 const USER_AGENT_FILE = path.join(CONFIG_DIR, 'user_agent.txt');
+const CAPTCHA_WHITELIST_FILE = path.join(CONFIG_DIR, 'captcha_whitelist.txt');
 
 // DO NOT EDIT - Overwritten by config file
 // Default configuration values
@@ -19,6 +20,7 @@ const defaultConfig = {
     WINDOW_WIDTH: 1280,
     WINDOW_HEIGHT: 720,
     MAX_IFRAME_DEPTH: 3,
+    CUSTOM_USER_AGENT: false,
     JS_CHECK_ENABLED: true,
     BLOCK_DOWNLOADS: true,
     BLOCK_MEDIA: true,
@@ -74,6 +76,11 @@ const defaultBlockedExtensions = [
 ].join('\n');
 const defaultSurfbarLinks = "";
 const defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0";
+const defaultCaptchaWhitelist = [
+    "cloudflare.com",
+    "hcaptcha.com",
+    "turnstile.cloudflare.com"
+].join('\n');
 // DO NOT EDIT - Overwritten by config file
 
 let config = { ...defaultConfig };
@@ -172,6 +179,7 @@ ensureTextFile(BLOCKED_DOMAINS_FILE, defaultBlockedDomains);
 ensureTextFile(BLOCKED_EXTENSIONS_FILE, defaultBlockedExtensions);
 ensureTextFile(SURFBAR_LINKS_FILE, defaultSurfbarLinks);
 ensureTextFile(USER_AGENT_FILE, defaultUserAgent);
+ensureTextFile(CAPTCHA_WHITELIST_FILE, defaultCaptchaWhitelist);
 
 // Default User-Agent (if `user_agent.txt` is missing)
 let userAgent = null;
@@ -214,10 +222,12 @@ let blockedDomains = new Set();
 let blockedExtensions = new Set();
 let whitelistDomains = new Set();
 let startURLs = new Set();
+let captchaWhitelist = new Set();
 loadFromFile('blocked_domains.txt', blockedDomains);
 loadFromFile('blocked_extensions.txt', blockedExtensions);
 loadFromFile('whitelist.txt', whitelistDomains);
 loadFromFile('surfbar_links.txt', startURLs);
+loadFromFile('captcha_whitelist.txt', captchaWhitelist);
 
 app.commandLine.appendSwitch('disable-logging'); //disable chromium logs
 
@@ -261,6 +271,10 @@ function getDomain(url) {
     } catch (error) {
         return 'unknown';
     }
+}
+
+function isCaptchaWhitelisted(url) {
+    return [...captchaWhitelist].some(domain => url.includes(domain));
 }
 
 // Custom logger to prepend domain to log messages
@@ -372,6 +386,11 @@ app.whenReady().then(() => {
         session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
             const url = details.url.toLowerCase();
 
+            if (isCaptchaWhitelisted(url)) {
+                logger(`Captcha-Whitelist erlaubt: ${url}`, colors.green);
+                return callback({ cancel: false, responseHeaders: details.responseHeaders });
+            }
+
             if(config.MAX_IFRAME_DEPTH > 0) {
                 // Block iframes deeper than the allowed depth
                 if (details.resourceType === 'subFrame') {
@@ -458,6 +477,11 @@ app.whenReady().then(() => {
 
         session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
             const url = details.url.toLowerCase();
+
+            if (isCaptchaWhitelisted(url)) {
+                logger(`Captcha-Whitelist erlaubt (early): ${url}`, colors.green);
+                return callback({ cancel: false });
+            }
 
             if(config.MAX_IFRAME_DEPTH > 0) {
                 // Block iframes deeper than the allowed depth
@@ -550,7 +574,7 @@ app.whenReady().then(() => {
         }
 
         // Set a custom user agents
-        if(userAgent && userAgent.length > 0) {
+        if(config.CUSTOM_USER_AGENT && userAgent && userAgent.length > 0) {
             win.webContents.setUserAgent(userAgent);
         }
 
