@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session } = require('electron');
+const {app, BrowserWindow, session} = require('electron');
 const osu = require('os-utils');
 const fs = require('fs');
 const path = require('path');
@@ -30,9 +30,9 @@ const defaultConfig = {
     BLOCK_EXTENSIONS: true,
     BLOCK_NAVIGATION_TO_OTHER_DOMAINS: true,
     BLOCK_NOT_WHITELISTED_POPUPS: true,
-    RENDERER_OVERLOAD_CHECK: true,
+    RENDERER_OVERLOAD_CHECK: false,
     RELOAD_TIMER: 0,
-    OVERLOAD_ENABLED: true,
+    OVERLOAD_ENABLED: false,
     OVERLOAD_WARNING_CPU: 50,
     OVERLOAD_WARNING_RAM: 50,
     OVERLOAD_THRESHOLD_CPU: 90,
@@ -83,29 +83,29 @@ const defaultCaptchaWhitelist = [
 ].join('\n');
 // DO NOT EDIT - Overwritten by config file
 
-let config = { ...defaultConfig };
-let browserConfig = { ...defaultBrowserConfig };
+let config = {...defaultConfig};
+let browserConfig = {...defaultBrowserConfig};
 
 // Function to create config file if missing
 function ensureConfigFile(filePath, defaultData) {
     if (!fs.existsSync(CONFIG_DIR)) {
-        fs.mkdirSync(CONFIG_DIR, { recursive: true });
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created config directory:',colors.green)} ${colorize(CONFIG_DIR,colors.cyan)}`);
+        fs.mkdirSync(CONFIG_DIR, {recursive: true});
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Created config directory:', colors.green)} ${colorize(CONFIG_DIR, colors.cyan)}`);
     }
     if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 4), 'utf-8');
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created default config file:',colors.green)} ${colorize(filePath,colors.cyan)}`);
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Created default config file:', colors.green)} ${colorize(filePath, colors.cyan)}`);
     }
 }
 
 // Function to create text files if missing
 function ensureTextFile(filePath, defaultContent) {
     if (!fs.existsSync(CONFIG_DIR)) {
-        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        fs.mkdirSync(CONFIG_DIR, {recursive: true});
     }
     if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, defaultContent, 'utf-8');
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Created default text file:',colors.green)} ${colorize(filePath,colors.cyan)}`);
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Created default text file:', colors.green)} ${colorize(filePath, colors.cyan)}`);
     }
 }
 
@@ -163,11 +163,11 @@ function loadConfig(filePath, target, defaultData) {
 
         // Apply the merged config to the target object
         Object.assign(target, parsedConfig);
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings from',colors.green)} ${colorize(filePath,colors.cyan)} ${colorize('loaded:',colors.green)}`);
-        console.log(colorize(target,colors.blue));
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Settings from', colors.green)} ${colorize(filePath, colors.cyan)} ${colorize('loaded:', colors.green)}`);
+        console.log(colorize(target, colors.blue));
     } catch (error) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Settings file',colors.red)} ${colorize(filePath,colors.cyan)} ${colorize('not found, using default values:',colors.red)}`);
-        console.log(colorize(target,colors.blue));
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Settings file', colors.red)} ${colorize(filePath, colors.cyan)} ${colorize('not found, using default values:', colors.red)}`);
+        console.log(colorize(target, colors.blue));
     }
 }
 
@@ -190,13 +190,13 @@ function loadUserAgent() {
         const ua = fs.readFileSync(path.join(CONFIG_DIR, 'user_agent.txt'), 'utf-8').trim();
         if (ua && ua.length > 0) {
             userAgent = ua;
-            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('User-Agent from',colors.green)} ${colorize('user_agent.txt',colors.cyan)} ${colorize('loaded:',colors.green)}`);
-            console.log(colorize(userAgent,colors.blue));
+            console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('User-Agent from', colors.green)} ${colorize('user_agent.txt', colors.cyan)} ${colorize('loaded:', colors.green)}`);
+            console.log(colorize(userAgent, colors.blue));
         } else {
-            console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize('user_agent.txt',colors.cyan)} ${colorize(', using default User-Agent.',colors.red)}`);
+            console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Could not load', colors.red)} ${colorize('user_agent.txt', colors.cyan)} ${colorize(', using default User-Agent.', colors.red)}`);
         }
     } catch (error) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize('user_agent.txt',colors.cyan)} ${colorize(', using default User-Agent.',colors.red)}`);
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Could not load', colors.red)} ${colorize('user_agent.txt', colors.cyan)} ${colorize(', using default User-Agent.', colors.red)}`);
     }
 }
 
@@ -209,10 +209,10 @@ function loadFromFile(filename, targetSet) {
             let domain = line.trim().toLowerCase();
             if (domain) targetSet.add(domain);
         }
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Loaded',colors.green)} ${colorize(targetSet.size,colors.cyan)} ${colorize('entries from',colors.green)} ${colorize(filename,colors.cyan)}${colorize(':',colors.green)}`);
-        console.log(colorize(Array.from(targetSet),colors.blue));
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Loaded', colors.green)} ${colorize(targetSet.size, colors.cyan)} ${colorize('entries from', colors.green)} ${colorize(filename, colors.cyan)}${colorize(':', colors.green)}`);
+        console.log(colorize(Array.from(targetSet), colors.blue));
     } catch (error) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Could not load',colors.red)} ${colorize(filename,colors.cyan)}${colorize('.',colors.red)}`);
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Could not load', colors.red)} ${colorize(filename, colors.cyan)}${colorize('.', colors.red)}`);
     }
 }
 
@@ -228,6 +228,22 @@ loadFromFile('blocked_extensions.txt', blockedExtensions);
 loadFromFile('whitelist.txt', whitelistDomains);
 loadFromFile('surfbar_links.txt', startURLs);
 loadFromFile('captcha_whitelist.txt', captchaWhitelist);
+
+const windowSettings = {
+    width: config.WINDOW_WIDTH,
+    height: config.WINDOW_HEIGHT,
+    backgroundThrottling: true,
+    webPreferences: {
+        sandbox: false,
+        nodeIntegration: false,
+        contextIsolation: true,
+        webSecurity: true,
+        autoplayPolicy: 'document-user-activation-required',
+        disableBlinkFeatures: "MediaStream,EncryptedMedia",
+        siteInstance: true,
+        enableRemoteModule: false
+    }
+}
 
 app.commandLine.appendSwitch('disable-logging'); //disable chromium logs
 
@@ -279,12 +295,12 @@ function isCaptchaWhitelisted(url) {
 
 // Custom logger to prepend domain to log messages
 function createLogger(win) {
-    return (message,color) => {
+    return (message, color) => {
         const domain = getDomain(win.webContents.getURL());
-        if(domain !== 'unknown')
-            console.log(`${colorize('['+domain+']',colors.magenta)} ${colorize(message,color)}`);
+        if (domain !== 'unknown')
+            console.log(`${colorize('[' + domain + ']', colors.magenta)} ${colorize(message, color)}`);
         else
-            console.log(`${colorize('[Unknown]',colors.magenta)} ${colorize(message,color)}`);
+            console.log(`${colorize('[Unknown]', colors.magenta)} ${colorize(message, color)}`);
     };
 }
 
@@ -297,8 +313,8 @@ function monitorRenderer() {
             );
 
             if (highCpuProcesses.length > 0) {
-                console.log( `${colorize('[Surfer]', colors.magenta)} ${colorize('High CPU usage detected in renderer process(es):', colors.yellow)}`);
-                console.log(`${colorize(highCpuProcesses,colors.blue)}`)
+                console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('High CPU usage detected in renderer process(es):', colors.yellow)}`);
+                console.log(`${colorize(highCpuProcesses, colors.blue)}`)
 
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -324,6 +340,7 @@ function monitorRenderer() {
 }
 
 let exceedCount = 0;
+
 function monitorSystemPerformance() {
     setInterval(() => {
         osu.cpuUsage((cpu) => {
@@ -333,14 +350,14 @@ function monitorSystemPerformance() {
 
             // Check if CPU or RAM usage exceeds the WARNING level
             if (cpuUsage > config.OVERLOAD_WARNING_CPU || ramUsage > config.OVERLOAD_WARNING_RAM) {
-                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Attention: System-CPU: '+cpuUsage+'% | System-RAM: '+ramUsage+'%)',colors.yellow)}`);
+                console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Attention: System-CPU: ' + cpuUsage + '% | System-RAM: ' + ramUsage + '%)', colors.yellow)}`);
             }
 
             // Check if CPU or RAM usage exceeds the CRITICAL THRESHOLD
             if (cpuUsage > config.OVERLOAD_THRESHOLD_CPU || ramUsage > config.OVERLOAD_THRESHOLD_RAM) {
                 // Increment the exceedCount if the threshold is exceeded
                 exceedCount++;
-                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Warning: '+exceedCount+'/'+config.OVERLOAD_EXCEED_LIMIT+' - System overload detected.', colors.yellow)}`);
+                console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Warning: ' + exceedCount + '/' + config.OVERLOAD_EXCEED_LIMIT + ' - System overload detected.', colors.yellow)}`);
             } else {
                 // Reset the counter if usage falls below the critical threshold
                 exceedCount = 0;
@@ -348,7 +365,7 @@ function monitorSystemPerformance() {
 
             // If exceedCount reaches the limit, reload all windows
             if (exceedCount >= config.OVERLOAD_EXCEED_LIMIT) {
-                console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Threshold exceeded! Reloading all windows.',colors.red)}`);
+                console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Threshold exceeded! Reloading all windows.', colors.red)}`);
                 BrowserWindow.getAllWindows().forEach(win => win.reload());
                 exceedCount = 0; // Reset the counter after reloading
             }
@@ -358,241 +375,234 @@ function monitorSystemPerformance() {
 
 app.whenReady().then(() => {
     // Create a new BrowserWindow for each URL in startURLs
-    startURLs.forEach(url => {
-
-        let win = new BrowserWindow({
-            width: config.WINDOW_WIDTH, height: config.WINDOW_HEIGHT, backgroundThrottling: true, webPreferences: {
-                sandbox: false,
-                nodeIntegration: false,
-                contextIsolation: true,
-                webSecurity: true,
-                autoplayPolicy: 'document-user-activation-required',
-                disableBlinkFeatures: "MediaStream,EncryptedMedia",
-                siteInstance: true,
-                enableRemoteModule: false
-            }
-        });
-
-        const logger = createLogger(win);
-
-        // Set up the reload timer if RELOAD_TIMER is greater than 0
-        if (config.RELOAD_TIMER > 0) {
-            setInterval(() => {
-                logger(`Reloading page after ${config.RELOAD_TIMER} seconds...`, colors.green);
-                win.webContents.reload();
-            }, config.RELOAD_TIMER * 1000);
-        }
-
-        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-            const url = details.url.toLowerCase();
-
-            if (isCaptchaWhitelisted(url)) {
-                logger(`Captcha-Whitelist erlaubt: ${url}`, colors.green);
-                return callback({ cancel: false, responseHeaders: details.responseHeaders });
-            }
-
-            if(config.MAX_IFRAME_DEPTH > 0) {
-                // Block iframes deeper than the allowed depth
-                if (details.resourceType === 'subFrame') {
-                    let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
-                    if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`,colors.brightBlack);
-                        return callback({cancel: true});
-                    }
-                }
-            }
-
-            if(config.ALLOW_WHITELIST) {
-                // Allow only whitelisted domains
-                if ([...whitelistDomains].some(domain => url.includes(domain))) {
-                    return callback({cancel: false, responseHeaders: details.responseHeaders});
-                }
-            }
-
-            if(config.BLOCK_MEDIA) {
-                // Block audio and video content based on Content-Type header
-                if (details.responseHeaders && details.responseHeaders['content-type']) {
-                    let contentType = details.responseHeaders['content-type'][0].toLowerCase();
-                    if (contentType.includes('video') || contentType.includes('audio')) {
-                        logger(`Blocked media content based on Content-Type: ${url}`,colors.brightBlack);
-                        return callback({cancel: true});
-                    }
-                }
-            }
-
-            if(config.BLOCK_DOMAINS) {
-                // Block blacklisted domains
-                if ([...blockedDomains].some(domain => url.includes(domain))) {
-                    logger(`Blocked domain from blacklist: ${url}`,colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            if(config.BLOCK_EXTENSIONS) {
-                // Block specific file extensions
-                if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                    logger(`Blocked file extension: ${url}`,colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            // Allow all other requests
-            callback({ cancel: false, responseHeaders: details.responseHeaders });
-        });
-
-        win.webContents.on('page-title-updated', (event, title) => {
-            logger(`Update: ${title}`,colors.green);
-        });
-
-        win.webContents.setWindowOpenHandler((details) => {
-            if(config.BLOCK_NOT_WHITELISTED_POPUPS) {
-                let senderFrame = details.referrer;
-                if (!senderFrame) {
-                    logger(`Blocked pop-up from unknown Sender to: ${details.url}`,colors.brightBlack);
-                    return {action: 'deny'};
-                }
-
-                let senderDomain = getDomain(senderFrame.url);
-
-                if (whitelistDomains.has(senderDomain)) {
-                    return {action: 'allow'};
-                } else {
-                    logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`, colors.brightBlack);
-                    return {action: 'deny'};
-                }
-            }
-            return {action: 'allow'};
-        });
-
-        win.webContents.on('will-navigate', (event, newURL) => {
-            if(config.BLOCK_NAVIGATION_TO_OTHER_DOMAINS) {
-                let currentDomain = getDomain(win.webContents.getURL());
-                let targetDomain = getDomain(newURL);
-                if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
-                    logger(`Blocked navigation from ${currentDomain} to: ${newURL}`,colors.brightBlack);
-                    event.preventDefault();
-                }
-            }
-        });
-
-        session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-            const url = details.url.toLowerCase();
-
-            if (isCaptchaWhitelisted(url)) {
-                logger(`Captcha-Whitelist erlaubt (early): ${url}`, colors.green);
-                return callback({ cancel: false });
-            }
-
-            if(config.MAX_IFRAME_DEPTH > 0) {
-                // Block iframes deeper than the allowed depth
-                if (details.resourceType === 'subFrame') {
-                    let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
-                    if (frameDepth >= config.MAX_IFRAME_DEPTH) {
-                        logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`,colors.brightBlack);
-                        return callback({cancel: true});
-                    }
-                }
-            }
-
-            if(config.ALLOW_WHITELIST) {
-                // Allow only whitelisted domains
-                if ([...whitelistDomains].some(domain => url.includes(domain))) {
-                    return callback({cancel: false});
-                }
-            }
-
-            if(config.BLOCK_MEDIA) {
-                // Block audio and video content before it loads
-                if (['media', 'object'].includes(details.resourceType)) {
-                    logger(`Blocked media content (Audio/Video): ${url}`,colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            if(config.BLOCK_DOMAINS) {
-                // Block requests from blacklisted domains
-                if ([...blockedDomains].some(domain => url.includes(domain))) {
-                    logger(`Blocked domain from blacklist: ${url}`, colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            if(config.BLOCK_EXTENSIONS) {
-                // Block specific file extensions
-                if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
-                    logger(`Blocked file extension: ${url}`,colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            if(config.BLOCK_OTHER_URL_TYPES) {
-                // Block specific URL types like blob:, base64:, and WebSockets
-                if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
-                    logger(`Blocked special URL type: ${url}`,colors.brightBlack);
-                    return callback({cancel: true});
-                }
-            }
-
-            // Allow all other requests
-            callback({ cancel: false });
-        });
-
-        win.webContents.session.on('will-download', (event, item) => {
-            if (config.BLOCK_DOWNLOADS) {
-                logger(`Blocked download: ${item.getURL()}`,colors.brightBlack);
-                event.preventDefault();
-            }
-        });
-
-        // Inject JavaScript to monitor iframe depth and media elements
-        if (config.JS_CHECK_ENABLED) {
-            win.webContents.once('did-finish-load', () => {
-                win.webContents.executeJavaScript(`
-                    function getIframeDepth(iframe) {
-                        let depth = 0;
-                        while (iframe) {
-                            depth++;
-                            iframe = iframe.parentElement.closest("iframe");
-                        }
-                        return depth;
-                    }
-                    function blockElements() {
-                        document.querySelectorAll('iframe, video, audio').forEach(el => {
-                            if (el.tagName === 'IFRAME' && getIframeDepth(el) > ${config.MAX_IFRAME_DEPTH}) {
-                                console.warn("Blocked deeply nested iframe:", el.src);
-                                el.remove();
-                            } else if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
-                                el.style.visibility = 'hidden';
-                                el.pause();
-                                el.remove();
-                            }
-                        });
-                    }
-                    setInterval(blockElements, 1000);
-                `).then();
-            });
-        }
-
-        // Set a custom user agents
-        if(config.CUSTOM_USER_AGENT && userAgent && userAgent.length > 0) {
-            win.webContents.setUserAgent(userAgent);
-        }
-
-        // Load the URL in the window
-        win.loadURL(url).then();
-    });
+    startURLs.forEach(url => new BrowserWindow(windowSettings).loadURL(url));
 
     // If no URLs are provided, show a notice
     if (startURLs.size === 0) {
-        console.log(`${colorize('[Surfer]',colors.magenta)} ${colorize('Please add your surf links in "config/surfbar_links.txt" and restart.',colors.red)}`);
+        console.log(`${colorize('[Surfer]', colors.magenta)} ${colorize('Please add your surf links in "config/surfbar_links.txt" and restart.', colors.red)}`);
     }
 
-    if(config.OVERLOAD_ENABLED) {
+    if (config.OVERLOAD_ENABLED) {
         monitorSystemPerformance(); // Starting System-Monitoring
     }
 
-    if(config.RENDERER_OVERLOAD_CHECK) {
+    if (config.RENDERER_OVERLOAD_CHECK) {
         monitorRenderer();  // Starting Renderer-Monitoring
+    }
+});
+
+app.on('web-contents-created', (event, contents) => {
+    const logger = createLogger({webContents: contents});
+
+    if (config.RELOAD_TIMER > 0) {
+        setInterval(() => {
+            logger(`Reloading page after ${config.RELOAD_TIMER} seconds...`, colors.green);
+            contents.reload();
+        }, config.RELOAD_TIMER * 1000);
+    }
+
+    contents.setWindowOpenHandler((details) => {
+        if (config.BLOCK_NOT_WHITELISTED_POPUPS) {
+
+            let target = getDomain(details.url);
+            let senderFrame = details.referrer;
+            let senderDomain = getDomain(senderFrame.url);
+
+            if (whitelistDomains.has(target)) {
+                return {action: 'allow', overrideBrowserWindowOptions: windowSettings};
+            }
+
+            if (!senderFrame) {
+                logger(`Blocked pop-up from unknown Sender to: ${details.url}`, colors.brightBlack);
+                return {action: 'deny'};
+            }
+
+            if (whitelistDomains.has(senderDomain)) {
+                return {action: 'allow', overrideBrowserWindowOptions: windowSettings};
+            } else {
+                logger(`Blocked pop-up from ${senderDomain} to: ${details.url}`, colors.brightBlack);
+                return {action: 'deny'};
+            }
+        }
+        return {action: 'allow', overrideBrowserWindowOptions: windowSettings};
+    });
+
+    contents.on('page-title-updated', (event, title) => {
+        logger(`Update: ${title}`, colors.green);
+    });
+
+    contents.on('will-navigate', (event, newURL) => {
+
+        let currentDomain = getDomain(contents.getURL());
+        let targetDomain = getDomain(newURL);
+
+        if (config.BLOCK_NAVIGATION_TO_OTHER_DOMAINS && !whitelistDomains.has(targetDomain)) {
+            let currentDomain = getDomain(contents.getURL());
+            let targetDomain = getDomain(newURL);
+
+            if (currentDomain !== "unknown" && currentDomain !== targetDomain) {
+                logger(`Blocked navigation from ${currentDomain} to: ${newURL}`, colors.brightBlack);
+                event.preventDefault();
+            }
+        }
+    });
+
+    contents.session.webRequest.onBeforeRequest((details, callback) => {
+        const url = details.url.toLowerCase();
+
+        if (isCaptchaWhitelisted(url)) {
+            logger(`Captcha-Whitelist erlaubt: ${url}`, colors.green);
+            return callback({cancel: false});
+        }
+
+        if (config.MAX_IFRAME_DEPTH > 0) {
+            // Block iframes deeper than the allowed depth
+            if (details.resourceType === 'subFrame') {
+                let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
+                if (frameDepth >= config.MAX_IFRAME_DEPTH) {
+                    logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`, colors.brightBlack);
+                    return callback({cancel: true});
+                }
+            }
+        }
+
+        if (config.ALLOW_WHITELIST) {
+            // Allow only whitelisted domains
+            if ([...whitelistDomains].some(domain => url.includes(domain))) {
+                return callback({cancel: false});
+            }
+        }
+
+        if (config.BLOCK_MEDIA) {
+            // Block audio and video content before it loads
+            if (['media', 'object'].includes(details.resourceType)) {
+                logger(`Blocked media content (Audio/Video): ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        if (config.BLOCK_DOMAINS) {
+            // Block requests from blacklisted domains
+            if ([...blockedDomains].some(domain => url.includes(domain))) {
+                logger(`Blocked domain from blacklist: ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        if (config.BLOCK_EXTENSIONS) {
+            // Block specific file extensions
+            if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+                logger(`Blocked file extension: ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        if (config.BLOCK_OTHER_URL_TYPES) {
+            // Block specific URL types like blob:, base64:, and WebSockets
+            if (url.startsWith('blob:') || url.includes('base64,') || url.includes('wss://') || url.includes('rtcpeerconnection')) {
+                logger(`Blocked special URL type: ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        // Allow all other requests
+        callback({cancel: false});
+    });
+
+    contents.session.webRequest.onHeadersReceived((details, callback) => {
+        const url = details.url.toLowerCase();
+
+        if (isCaptchaWhitelisted(url)) {
+            logger(`Captcha-Whitelist erlaubt: ${url}`, colors.green);
+            return callback({cancel: false, responseHeaders: details.responseHeaders});
+        }
+
+        if (config.MAX_IFRAME_DEPTH > 0) {
+            // Block iframes deeper than the allowed depth
+            if (details.resourceType === 'subFrame') {
+                let frameDepth = details.frameAncestors ? details.frameAncestors.length : 0;
+                if (frameDepth >= config.MAX_IFRAME_DEPTH) {
+                    logger(`Blocked deeply nested iframe (Depth: ${frameDepth}): ${url}`, colors.brightBlack);
+                    return callback({cancel: true});
+                }
+            }
+        }
+
+        if (config.ALLOW_WHITELIST) {
+            // Allow only whitelisted domains
+            if ([...whitelistDomains].some(domain => url.includes(domain))) {
+                return callback({cancel: false, responseHeaders: details.responseHeaders});
+            }
+        }
+
+        if (config.BLOCK_MEDIA) {
+            // Block audio and video content based on Content-Type header
+            if (details.responseHeaders && details.responseHeaders['content-type']) {
+                let contentType = details.responseHeaders['content-type'][0].toLowerCase();
+                if (contentType.includes('video') || contentType.includes('audio')) {
+                    logger(`Blocked media content based on Content-Type: ${url}`, colors.brightBlack);
+                    return callback({cancel: true});
+                }
+            }
+        }
+
+        if (config.BLOCK_DOMAINS) {
+            // Block blacklisted domains
+            if ([...blockedDomains].some(domain => url.includes(domain))) {
+                logger(`Blocked domain from blacklist: ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        if (config.BLOCK_EXTENSIONS) {
+            // Block specific file extensions
+            if ([...blockedExtensions].some(ext => url.endsWith(ext))) {
+                logger(`Blocked file extension: ${url}`, colors.brightBlack);
+                return callback({cancel: true});
+            }
+        }
+
+        // Allow all other requests
+        callback({cancel: false, responseHeaders: details.responseHeaders});
+    });
+
+    contents.session.on('will-download', (event, item) => {
+        if (config.BLOCK_DOWNLOADS) {
+            logger(`Blocked download: ${item.getURL()}`, colors.brightBlack);
+            event.preventDefault();
+        }
+    });
+
+    if (config.JS_CHECK_ENABLED) {
+        contents.once('did-finish-load', () => {
+            contents.executeJavaScript(`
+                function getIframeDepth(iframe) {
+                    let depth = 0;
+                    while (iframe) {
+                        depth++;
+                        iframe = iframe.parentElement.closest("iframe");
+                    }
+                    return depth;
+                }
+                function blockElements() {
+                    document.querySelectorAll('iframe, video, audio').forEach(el => {
+                        if (el.tagName === 'IFRAME' && getIframeDepth(el) > ${config.MAX_IFRAME_DEPTH}) {
+                            console.warn("Blocked deeply nested iframe:", el.src);
+                            el.remove();
+                        } else if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
+                            el.style.visibility = 'hidden';
+                            el.pause();
+                            el.remove();
+                        }
+                    });
+                }
+                setInterval(blockElements, 1000);
+            `).then();
+        });
+    }
+
+    if (config.CUSTOM_USER_AGENT && userAgent) {
+        contents.setUserAgent(userAgent);
     }
 });
 
@@ -603,7 +613,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-    console.log(`${colorize('[System]', colors.magenta)} ${colorize('Application is quitting...',colors.red)}`);
+    console.log(`${colorize('[System]', colors.magenta)} ${colorize('Application is quitting...', colors.red)}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.close();
     });
