@@ -585,11 +585,12 @@ app.on('web-contents-created', (event, contents) => {
                     return depth;
                 }
                 function blockElements() {
-                    document.querySelectorAll('iframe, video, audio').forEach(el => {
-                        if (el.tagName === 'IFRAME' && getIframeDepth(el) > ${config.MAX_IFRAME_DEPTH}) {
-                            console.warn("Blocked deeply nested iframe:", el.src);
-                            el.remove();
-                        } else if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
+                    document.querySelectorAll('iframe[srcdoc]').forEach(el => {
+                        console.warn("JS blocked srcdoc iframe:", el);
+                        el.remove();
+                    });
+                    document.querySelectorAll('video, audio').forEach(el => {
+                        if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
                             el.style.visibility = 'hidden';
                             el.pause();
                             el.remove();
