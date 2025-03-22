@@ -54,7 +54,7 @@ const defaultBrowserConfig = {
     rendererProcessLimit: 4,
 };
 
-const defaultWhitelist = ["shimly.de", "shimly.net"].join('\n');
+const defaultWhitelist = ["shimly.de", "shimly.net", "ebesucher.de"].join('\n');
 const defaultBlockedDomains = [
     "youtube.com",
     "netflix.com",
