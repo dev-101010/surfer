@@ -71,7 +71,7 @@ Below are the default settings available in `config.json`:
   "WINDOW_WIDTH": 1280, // Window width
   "WINDOW_HEIGHT": 720, // Window height
   "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
-  "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks (can be a blessing or a curse)
+  "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
   "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
   "BLOCK_MEDIA": true, // Enable or disable media blocking
   "BLOCK_OTHER_URL_TYPES": true, // Enable or disable blocking of other URL types ( e.g. wss:// )
