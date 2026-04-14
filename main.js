@@ -1,4 +1,4 @@
-const {app, BrowserWindow, session} = require('electron');
+const {app, BrowserWindow} = require('electron');
 const osu = require('os-utils');
 const fs = require('fs');
 const path = require('path');
@@ -523,7 +523,6 @@ app.on('web-contents-created', (event, contents) => {
 
     contents.on('will-navigate', (event, newURL) => {
 
-        let currentDomain = getDomain(contents.getURL());
         let targetDomain = getDomain(newURL);
 
         if (config.BLOCK_NAVIGATION_TO_OTHER_DOMAINS && !whitelistDomains.has(targetDomain)) {
