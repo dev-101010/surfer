@@ -1,114 +1,125 @@
-# Surfer v0.14
+# Surfer v1.0
 
-Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.
+Surfer ist ein auf Electron basierender Browser für Surfbars. Du steuerst alles in einem **Hauptfenster**. **Jeder Surfer läuft in einem eigenen Subfenster.** Textdateien oder Konsolenbefehle brauchst du dafür nicht.
 
-Compatible with **Windows**, **Linux**, and **macOS**.
+Läuft unter **Windows**, **Linux** und **macOS**.
 
 ---
 
 ## Installation
 
-### Step 1: Install Node.js
-Make sure you have **Node.js** installed on your system. If not, download and install it from the official website:
+1. **Node.js installieren** (Version 20 oder neuer): 👉 [nodejs.org](https://nodejs.org/en/download)
+2. **Projekt herunterladen**: 👉 [ZIP herunterladen](https://github.com/dev-101010/surfer/archive/refs/heads/master.zip) und in einen beliebigen Ordner entpacken.
+3. **Starten**
+   - **Windows:** Doppelklick auf `start.bat`
+   - **Linux/macOS:** einmalig `chmod +x start.sh`, danach `./start.sh`
 
-👉 [Download Node.js](https://nodejs.org/en/download)
+Beim ersten Start installiert das Startskript die Abhängigkeiten automatisch, nur dann ist ein Konsolenfenster zu sehen. Danach öffnet sich das Hauptfenster, und Surfer läuft ohne Konsole weiter. Ein zweiter Start holt einfach das vorhandene Hauptfenster nach vorn.
 
----
+**Fehlersuche:** `start-debug.bat` (Windows) bzw. `./start.sh --debug` startet Surfer mit offener Konsole und Live-Protokoll. Scheitert der Start, zeigt Surfer eine Fehlermeldung und schreibt Details nach `logs/startup-error.log`. Unter Linux und macOS steht die Ausgabe zusätzlich in `logs/start.log`.
 
-### Step 2: Download the Project
-Download the project as a ZIP file from GitHub:
-
-👉 [Download ZIP](https://github.com/dev-101010/surfer/archive/refs/heads/master.zip)
-
----
-
-### Step 3: Unzip the Files
-Extract the downloaded ZIP file to a directory of your choice.
+**Linux-Hinweis:** Auf manchen Systemen (z. B. Ubuntu 24.04) ist die Chromium-Sandbox blockiert. `start.sh` erkennt das und zeigt den passenden Befehl zur Behebung an.
 
 ---
 
-### Step 4: Cold boot (creates config files, if not already exists)
-1. Start Surfer with start.bat or start.sh.
-2. Wait until console say: Please add your surf links in "config/surfbar_links.txt" and restart.
+## Bedienung
 
-### Windows
-1. Open the extracted directory.
-2. Double-click on `start.bat` to run the script.
-3. If asked, allow to execute.
+### Hauptfenster
 
-### Linux and macOS
-1. Open a terminal and navigate to the extracted directory.
-2. Run the following command to execute the script:
-   ###### First start, make executable:
-   ```bash
-   chmod +x start.sh
-   ```
-   ###### Start:
-   ```bash
-   ./start.sh
-    ```
+| Bereich | Funktion |
+|---|---|
+| **Surfer** | Surfbar-Links hinzufügen, umbenennen, sortieren und löschen. Pro Surfer: starten/stoppen, neu laden, Fenster zeigen/verbergen, Ton, Zoom, Autostart, eigene Session. Sammelaktionen: alle starten/stoppen/neu laden, Fenster im Raster anordnen, alle zeigen/verbergen. Live-Anzeige von Status, Seitentitel, Laufzeit, Reloads, blockierten Anfragen sowie CPU und RAM. |
+| **Einstellungen** | Alle Optionen als Schalter und Zahlenfelder mit Erklärung. Werte werden geprüft, sofort gespeichert und wo möglich live übernommen. Jede Option lässt sich einzeln auf den Standard zurücksetzen. |
+| **Filter & Identität** | Whitelist, gesperrte Domains, gesperrte Dateiendungen, Captcha-Whitelist und User-Agent. Ungültige Einträge werden gemeldet und verworfen. |
+| **System** | System-CPU und -RAM mit 5-Minuten-Verlauf, alle Prozesse mit Zuordnung zum Surfer, Werkzeuge (Session leeren, Ordner öffnen). |
+| **Protokoll** | Live-Protokoll mit Filter nach Stufe und Text sowie Export. |
+| **Info** | Konzept, Versionen, Pfade und **Updates**. |
+
+### Surfer-Subfenster
+
+Jedes Surfer-Fenster hat oben eine Werkzeugleiste mit Status, Adresse, *Zurück*, *Neu laden*, *Start-Adresse*, Zoom, Ton, *Verbergen* und *Hauptfenster*. Ein verborgener Surfer läuft im Hintergrund weiter. Schließt du ein Surfer-Fenster, wird nur dieser Surfer gestoppt. Schließt du das Hauptfenster, wird Surfer beendet (mit Rückfrage, falls noch Surfer laufen).
 
 ---
 
-### Step 5: Configure Surfbar Link
-1. Navigate to the `config` directory.
-2. Open the `surfbar_links.txt` file.
-3. Add your Surfbar links to the file and save it. (line by line)
+## Funktionen
+
+**Wächter**
+- Nach Absturz, Ladefehler oder Hänger wird die Seite automatisch neu geladen. Die Wartezeit verdoppelt sich bei jedem weiteren Fehler (bis 32×).
+- Optional: Reload-Intervall, Stillstand-Erkennung (Neuladen, wenn sich Adresse, Titel und Frames eine Zeit lang nicht ändern), Überlastschutz für einzelne Renderer und für das ganze System.
+- `alert`/`confirm`/`prompt` und `beforeunload` können einen unbeaufsichtigten Surfer nicht mehr blockieren.
+
+**Seiten-Skripte** (laufen vor den Seitenskripten in jedem Frame)
+- Sichtbarkeit und Fokus werden vorgetäuscht, auch in iFrames.
+- Optional werden Mausbewegungen simuliert.
+- Der DOM-Wächter entfernt Video-/Audio-Elemente und `srcdoc`-iFrames, sobald sie auftauchen.
+
+**Filter**
+Geprüft wird der echte Hostname inklusive Subdomains, nicht mehr ein beliebiger Textausschnitt der URL. Die Reihenfolge:
+Captcha-Whitelist → iFrame-Tiefe → Whitelist → Medien → gesperrte Domains → Dateiendungen (Pfad ohne Query) → WebSockets / blob- und data-Frames.
+Dazu kommen Download-Sperre, Navigationssperre auf die eigene Domain, Popup-Filter mit Limit pro Surfer und der Schutz gegen WebRTC-IP-Leaks.
+
+**Sitzungen**
+Standardmäßig teilen sich alle Surfer eine dauerhafte Browser-Sitzung, ein Login gilt also für alle. Ein Surfer mit „Eigene Session“ hat eigene Cookies.
+
+**Härtung**
+- Seiteninhalte laufen in einer Sandbox mit Context Isolation, ohne Node.js, ohne DevTools, ohne `<webview>`.
+- Alle Berechtigungsanfragen (Kamera, Mikrofon, Standort, Benachrichtigungen …) werden abgelehnt.
+- Die eigene Oberfläche hat eine strikte CSP. IPC-Aufrufe werden nur vom Hauptfenster angenommen und alle Eingaben serverseitig geprüft.
+- Die Konfiguration wird atomar geschrieben und gesichert (`settings.json.bak`). Eine beschädigte Datei wird erkannt und beiseitegelegt.
+- Der Standard-User-Agent enthält keine Electron-Kennung.
 
 ---
 
-### Step 6: Configure Surfer (Optional)
+## Updates
 
-1. Navigate to the `config` directory.
-2. Open the `config.json` file.
-3. Modify the settings carefully.
+Surfer sucht beim Start und danach alle 24 Stunden auf GitHub nach einer neuen Version (abschaltbar unter *Einstellungen → Updates*). Ist eine neue Version verfügbar, erscheint ein Hinweis, und unter **Info → Updates** kannst du sie installieren:
 
-#### Default Configuration
+1. Die neue Version wird heruntergeladen und geprüft.
+2. Die aktuelle Version wird nach `backup/<version>-<zeitpunkt>/` gesichert.
+3. Die Programmdateien werden ersetzt. `config/`, `logs/` und `node_modules/` bleiben unverändert.
+4. Schlägt etwas fehl, wird die alte Version automatisch wiederhergestellt.
+5. Neustart. Haben sich die Abhängigkeiten geändert, beendest du Surfer und startest ihn über `start.bat`/`start.sh` neu. Das Skript installiert sie dann automatisch.
 
-Below are the default settings available in `config.json`:
-```json
-{
-  "WINDOW_WIDTH": 1280, // Window width
-  "WINDOW_HEIGHT": 720, // Window height
-  "MAX_IFRAME_DEPTH": 3, // Maximum allowed iframe nesting depth
-  "JS_CHECK_ENABLED": true, // Enable or disable additional JavaScript checks
-  "BLOCK_DOWNLOADS": true, // Enable or disable download blocking
-  "BLOCK_MEDIA": true, // Enable or disable media blocking
-  "BLOCK_OTHER_URL_TYPES": true, // Enable or disable blocking of other URL types ( e.g. wss:// )
-  "ALLOW_WHITELIST": true, // Enable or disable whitelisted domains
-  "BLOCK_DOMAINS": true, // Enable or disable blocked domains
-  "BLOCK_EXTENSIONS": true, // Enable or disable blocked extensions
-  "BLOCK_NAVIGATION_TO_OTHER_DOMAINS": true, // Block navigation to other domains
-  "BLOCK_NOT_WHITELISTED_POPUPS": true, // Block popups from non-whitelisted domains
-  "RENDERER_OVERLOAD_CHECK": false, // Check renderer for high CPU usage (restart if renderer >90% CPU-Core)
-  "RELOAD_TIMER": 0, // Reload site every X seconds (0 means disabled) (only if your surfbar stuck sometimes)
-  "OVERLOAD_ENABLED": false, // Enable or disable global overload monitoring
-  "OVERLOAD_WARNING_CPU": 50, // Warning for global CPU usage in %
-  "OVERLOAD_WARNING_RAM": 50, // Warning for global RAM usage in %
-  "OVERLOAD_THRESHOLD_CPU": 90, // Threshold for global CPU usage in %
-  "OVERLOAD_THRESHOLD_RAM": 90, // Threshold for global RAM usage in %
-  "OVERLOAD_CHECK_INTERVAL": 5, // Check interval in seconds (e.g., every 5 seconds)
-  "OVERLOAD_EXCEED_LIMIT": 3 // Number of consecutive exceedances before reload all windows
-  "CUSTOM_USER_AGENT": false // Use custom user agent from user_agent.txt
-}
+Bei einem Git-Checkout wird nur geprüft, nicht installiert. Aktualisiere dann mit `git pull`.
+
+---
+
+## Dateien
+
+| Pfad | Inhalt |
+|---|---|
+| `config/settings.json` | Gesamte Konfiguration (Einstellungen, Listen, Surfer). Wird über das Hauptfenster verwaltet. |
+| `logs/surfer.log` | Protokolldatei (nur wenn aktiviert, rotiert bei 5 MB) |
+| `logs/startup-error.log`, `logs/start.log` | Fehler beim Programmstart |
+| `backup/` | Sicherungen vor Updates |
+
+**Umstieg von v0.x:** Beim ersten Start werden die alten Dateien in `config/` (`config.json`, `browser_deep_config.json`, `surfbar_links.txt`, `whitelist.txt` usw.) automatisch in `settings.json` übernommen. Danach werden sie nicht mehr verwendet.
+
+Für mehrere getrennte Installationen oder zum Testen kann mit der Umgebungsvariable `SURFER_CONFIG_DIR` ein anderer Konfigurationsordner gewählt werden. Er bekommt dann auch ein eigenes Browserprofil.
+
+---
+
+## Entwicklung
+
+```bash
+npm install
+npm start      # Surfer starten
+npm test       # Unit-Tests (Filter, Domains, Konfiguration, Updater)
 ```
 
-Below are the browser deep settings available in `browser_deep_config.json`:
-```json
-{
-  "disableSiteIsolationTrials": true,
-  "disableGpuProcessPrelaunch": true,
-  "disableRendererBackgrounding": true,
-  "enableLowEndDeviceMode": true,
-  "disableAccelerated2DCanvas": true,
-  "disableHardwareAcceleration": true,
-  "disableSoftwareRasterizer": true,
-  "disableGpu": true,
-  "disableGpuCompositing": true,
-  "rendererProcessLimit": 4 // 1 window - 4 processes are okay, for more windows you need some more
-}
+Aufbau:
+
 ```
-
----
-
-![surfer](https://github.com/user-attachments/assets/1c315729-4af3-4db4-b707-4bdc9b51c012)
+src/main/        Hauptprozess
+  main.js          Einstieg, Chromium-Schalter, Lebenszyklus
+  control.js       Hauptfenster + IPC-Schnittstelle
+  surfer-manager.js Sessions, Request-Filter, Popups, Metriken, Überlast
+  surfer.js        ein Surfer = BaseWindow mit Werkzeugleiste + Inhalt
+  filter.js        Filterentscheidungen (ohne Electron, getestet)
+  config-store.js  Laden/Validieren/Speichern, Migration
+  schema.js        alle Einstellungen mit Typ, Grenzen, Beschreibung
+  updater.js       Update-Prüfung und -Installation
+src/preload/     Brücken zwischen Seiten und Hauptprozess
+src/renderer/    Hauptfenster (control) und Werkzeugleiste (toolbar)
+test/            node:test-Suite
+```

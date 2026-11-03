@@ -1,16 +1,24 @@
 {
   "name": "Surfer",
-  "version": "0.14",
-  "description": "Surfer is a simple Script for NodeJS that uses Electron to start a custom Browser for your Surfbars.",
-  "main": "main.js",
+  "version": "1.0.0",
+  "description": "Surfer ist ein Electron-Browser für Surfbars – gesteuert über ein Hauptfenster, jeder Surfer läuft in einem eigenen Subfenster.",
+  "main": "src/main/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/main/main.js && node --test test/*.test.js"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dev-101010/surfer.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["electron", "surfbar", "browser"],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "electron": "^41.2.0",
-    "os-utils": "^0.0.14"
+    "electron": "^45.2.1"
   }
 }
