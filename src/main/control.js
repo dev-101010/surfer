@@ -13,6 +13,7 @@ const {t} = i18n;
 const CONTROL_HTML = path.join(__dirname, '..', 'renderer', 'control', 'index.html');
 const PRELOAD_CONTROL = path.join(__dirname, '..', 'preload', 'control.js');
 const LOG_BATCH_MS = 200;
+const PACKAGE = require(path.join(__dirname, '..', '..', 'package.json'));
 
 function isId(v) {
     return typeof v === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(v);
@@ -222,6 +223,7 @@ ControlCenter.prototype.methods = {
         return ok({
             app: {
                 version: app.getVersion(),
+                license: PACKAGE.license || '',
                 electron: process.versions.electron,
                 chrome: process.versions.chrome,
                 node: process.versions.node,

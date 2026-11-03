@@ -140,3 +140,11 @@ scripts/           build-icons.js
 ```
 
 New texts go into `src/main/i18n.js` in **both** languages. `npm test` fails if a key is missing in one language or a key used in the code does not exist.
+
+---
+
+## License
+
+Copyright © 2025–2026 Dennis Drochmann
+
+Surfer is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License** as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but **without any warranty**. See [LICENSE](LICENSE) for details.

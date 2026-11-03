@@ -860,6 +860,7 @@ function renderInfo() {
         ['Electron', a.electron],
         ['Chromium', a.chrome],
         ['Node.js', a.node],
+        [t('ui.info.license'), a.license],
         [t('ui.info.system'), a.platform],
         [t('ui.info.config'), a.paths.config],
         [t('ui.info.logs'), a.paths.logs],

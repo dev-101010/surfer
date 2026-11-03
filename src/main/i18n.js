@@ -506,6 +506,7 @@ const de = {
     'ui.info.userData': 'Browserprofil',
     'ui.info.ua': 'Standard-User-Agent',
     'ui.info.system': 'System',
+    'ui.info.license': 'Lizenz',
 
     // ---- toolbar ------------------------------------------------------------------------------
     'tb.back': 'Zurück',
@@ -1011,6 +1012,7 @@ const en = {
     'ui.info.userData': 'Browser profile',
     'ui.info.ua': 'Default user agent',
     'ui.info.system': 'System',
+    'ui.info.license': 'License',
 
     'tb.back': 'Back',
     'tb.reload': 'Reload',

@@ -17,8 +17,8 @@
     "node": ">=20"
   },
   "keywords": ["electron", "surfbar", "browser"],
-  "author": "",
-  "license": "ISC",
+  "author": "Dennis Drochmann",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
     "electron": "^45.2.1"
   }

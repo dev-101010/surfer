@@ -140,3 +140,11 @@ scripts/           build-icons.js
 ```
 
 Neue Texte gehören in `src/main/i18n.js`, und zwar in **beiden** Sprachen. `npm test` schlägt fehl, wenn ein Schlüssel in einer Sprache fehlt oder ein im Code verwendeter Schlüssel nicht existiert.
+
+---
+
+## Lizenz
+
+Copyright © 2025–2026 Dennis Drochmann
+
+Surfer ist freie Software: Du kannst sie unter den Bedingungen der **GNU General Public License**, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder späteren Version. Surfer wird in der Hoffnung verbreitet, dass es nützlich ist, aber **ohne jede Gewährleistung**. Rechtlich verbindlich ist der englische Originaltext in [LICENSE](LICENSE).
