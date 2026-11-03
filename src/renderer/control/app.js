@@ -4,8 +4,6 @@
 
 const api = window.surfer;
 const $ = id => document.getElementById(id);
-const nf = new Intl.NumberFormat('de-DE');
-const nf1 = new Intl.NumberFormat('de-DE', {minimumFractionDigits: 1, maximumFractionDigits: 1});
 
 const state = {
     app: null,
@@ -24,6 +22,36 @@ const state = {
     unreadErrors: 0,
     view: 'surfers'
 };
+
+// ---------- i18n --------------------------------------------------------------------------------
+
+let STRINGS = {};
+let nf = new Intl.NumberFormat();
+let nf1 = new Intl.NumberFormat(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+let LOCALE;
+
+function t(key, params) {
+    const template = Object.prototype.hasOwnProperty.call(STRINGS, key) ? STRINGS[key] : key;
+    if (!params) return template;
+    return template.replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(params, k) ? String(params[k]) : m));
+}
+
+function applyI18n(i18n) {
+    STRINGS = i18n.strings || {};
+    LOCALE = i18n.locale;
+    document.documentElement.lang = i18n.lang;
+    nf = new Intl.NumberFormat(LOCALE);
+    nf1 = new Intl.NumberFormat(LOCALE, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        el.title = t(el.dataset.i18nTitle);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+}
 
 // ---------- helpers ----------------------------------------------------------------------------
 
@@ -58,8 +86,7 @@ const ICONS = {
     edit: ['M4 20h4L19 9l-4-4L4 16z', 'M13 7l4 4'],
     up: ['M6 15l6-6 6 6'],
     down: ['M6 9l6 6 6-6'],
-    trash: ['M4 7h16', 'M9 7V4h6v3', 'M6 7l1 13h10l1-13'],
-    reset: ['M4 12a8 8 0 1 0 2.3-5.7', 'M4 4v5h5']
+    trash: ['M4 7h16', 'M9 7V4h6v3', 'M6 7l1 13h10l1-13']
 };
 
 function icon(name) {
@@ -87,18 +114,18 @@ async function call(method, payload, {quiet = false} = {}) {
         res = {ok: false, errors: [err.message]};
     }
     if (!res || !res.ok) {
-        const msg = (res && res.errors && res.errors.join(' · ')) || 'Unbekannter Fehler';
+        const msg = (res && res.errors && res.errors.join(' · ')) || t('ui.err.unknown');
         if (!quiet) toast(msg, 'error', 5000);
         return null;
     }
     return res.data === undefined ? true : res.data;
 }
 
-function confirmDialog(title, text, okLabel = 'OK') {
+function confirmDialog(title, text, okLabel) {
     const dlg = $('confirm-dialog');
     $('confirm-title').textContent = title;
     $('confirm-text').textContent = text;
-    $('confirm-ok').textContent = okLabel;
+    $('confirm-ok').textContent = okLabel || t('ui.ok');
     dlg.returnValue = '';
     dlg.showModal();
     return new Promise(resolve => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), {once: true}));
@@ -110,17 +137,15 @@ function fmtDuration(ms) {
     const d = Math.floor(s / 86400);
     const hh = Math.floor((s % 86400) / 3600);
     const mm = Math.floor((s % 3600) / 60);
-    if (d) return `${d} T ${hh} h`;
-    if (hh) return `${hh} h ${mm} min`;
-    if (mm) return `${mm} min`;
-    return `${s} s`;
+    if (d) return t('ui.dur.days', {d, h: hh});
+    if (hh) return t('ui.dur.hours', {h: hh, m: mm});
+    if (mm) return t('ui.dur.minutes', {m: mm});
+    return t('ui.dur.seconds', {s});
 }
 
 function fmtTime(ts) {
-    return new Date(ts).toLocaleTimeString('de-DE');
+    return new Date(ts).toLocaleTimeString(LOCALE);
 }
-
-const STATUS_LABEL = {running: 'Läuft', loading: 'Lädt', error: 'Fehler', crashed: 'Abgestürzt', stopped: 'Gestoppt'};
 
 // ---------- navigation --------------------------------------------------------------------------
 
@@ -152,12 +177,12 @@ document.addEventListener('click', async e => {
     const btn = e.target.closest('[data-call]');
     if (!btn) return;
     const method = btn.dataset.call;
-    if (method === 'stopAll' && !(await confirmDialog('Alle Surfer stoppen?', 'Alle laufenden Surfer-Fenster werden geschlossen.', 'Stoppen'))) return;
-    if (method === 'restartApp' && !(await confirmDialog('Surfer neu starten?', 'Alle Surfer werden beendet und nach dem Neustart wieder automatisch gestartet (falls Autostart aktiv).', 'Neu starten'))) return;
+    if (method === 'stopAll' && !(await confirmDialog(t('ui.confirm.stopAll.title'), t('ui.confirm.stopAll.text'), t('ui.confirm.stopAll.ok')))) return;
+    if (method === 'restartApp' && !(await confirmDialog(t('ui.confirm.restart.title'), t('ui.confirm.restart.text'), t('ui.confirm.restart.ok')))) return;
     btn.disabled = true;
     const res = await call(method);
     btn.disabled = false;
-    if (method === 'tile' && res === 0) toast('Keine laufenden Surfer zum Anordnen.', 'warn');
+    if (method === 'tile' && res === 0) toast(t('ui.noTile'), 'warn');
 });
 
 // ---------- surfers ------------------------------------------------------------------------------
@@ -178,24 +203,21 @@ function createRow(s) {
     r.error = h('div', {class: 'surfer-error', hidden: true});
 
     r.m = {
-        uptime: metric('Laufzeit'),
-        reloads: metric('Reloads'),
-        blocked: metric('Blockiert'),
-        cpu: metric('CPU', 'm-optional'),
-        mem: metric('RAM', 'm-optional')
+        uptime: metric(t('ui.m.uptime')),
+        reloads: metric(t('ui.m.reloads')),
+        blocked: metric(t('ui.m.blocked')),
+        cpu: metric(t('ui.m.cpu'), 'm-optional'),
+        mem: metric(t('ui.m.ram'), 'm-optional')
     };
 
-    const act = (iconName, title, onclick, cls = 'icon-btn') => {
-        const b = h('button', {class: cls, title, onclick}, icon(iconName));
-        return b;
-    };
-    r.btnPower = act('play', 'Starten', () => call(r.data.running ? 'stopSurfer' : 'startSurfer', s.id));
-    r.btnReload = act('reload', 'Neu laden', () => call('reloadSurfer', s.id));
-    r.btnShow = act('eye', 'Fenster anzeigen', () => call(r.data.visible ? 'hideSurfer' : 'showSurfer', s.id));
-    r.btnMute = act('muted', 'Ton', () => call('muteSurfer', s.id));
-    r.btnUp = act('up', 'Nach oben', () => call('moveSurfer', {id: s.id, direction: -1}));
-    r.btnDown = act('down', 'Nach unten', () => call('moveSurfer', {id: s.id, direction: 1}));
-    r.btnEdit = act('edit', 'Bearbeiten', () => toggleEdit(s.id));
+    const act = (iconName, title, onclick) => h('button', {class: 'icon-btn', title, onclick}, icon(iconName));
+    r.btnPower = act('play', t('ui.act.start'), () => call(r.data.running ? 'stopSurfer' : 'startSurfer', s.id));
+    r.btnReload = act('reload', t('ui.act.reload'), () => call('reloadSurfer', s.id));
+    r.btnShow = act('eye', t('ui.act.show'), () => call(r.data.running && r.data.visible ? 'hideSurfer' : 'showSurfer', s.id));
+    r.btnMute = act('muted', t('ui.act.unmute'), () => call('muteSurfer', s.id));
+    r.btnUp = act('up', t('ui.act.up'), () => call('moveSurfer', {id: s.id, direction: -1}));
+    r.btnDown = act('down', t('ui.act.down'), () => call('moveSurfer', {id: s.id, direction: 1}));
+    r.btnEdit = act('edit', t('ui.act.edit'), () => toggleEdit(s.id));
 
     r.main = h('div', {class: 'surfer-main'},
         h('div', {class: 'surfer-id'},
@@ -221,16 +243,18 @@ function updateRow(r, s) {
     const status = s.running && s.loading && s.status === 'running' ? 'loading' : s.status;
     r.el.className = `surfer status-${status}`;
     r.pill.className = `pill ${status}`;
-    r.pill.textContent = s.recoveryAt ? `Neuer Versuch in ${fmtDuration(s.recoveryAt - Date.now())}` : (STATUS_LABEL[status] || status);
+    r.pill.textContent = s.recoveryAt
+        ? t('ui.status.retry', {t: fmtDuration(s.recoveryAt - Date.now())})
+        : t(`ui.status.${status}`);
     r.name.textContent = s.name;
     r.name.title = s.name;
 
     r.tags.textContent = '';
-    if (s.isolated) r.tags.append(h('span', {class: 'tag', text: 'Eigene Session'}));
-    if (!s.autostart) r.tags.append(h('span', {class: 'tag', text: 'Kein Autostart'}));
+    if (s.isolated) r.tags.append(h('span', {class: 'tag', text: t('ui.tag.isolated')}));
+    if (!s.autostart) r.tags.append(h('span', {class: 'tag', text: t('ui.tag.noAutostart')}));
     if (s.zoom !== 1) r.tags.append(h('span', {class: 'tag', text: `${Math.round(s.zoom * 100)} %`}));
-    if (s.popups) r.tags.append(h('span', {class: 'tag', text: `${s.popups} Popup${s.popups > 1 ? 's' : ''}`}));
-    if (s.running && !s.visible) r.tags.append(h('span', {class: 'tag', text: 'Verborgen'}));
+    if (s.popups) r.tags.append(h('span', {class: 'tag', text: s.popups === 1 ? t('ui.tag.popup') : t('ui.tag.popups', {n: s.popups})}));
+    if (s.running && !s.visible) r.tags.append(h('span', {class: 'tag', text: t('ui.tag.hidden')}));
 
     r.sub.textContent = '';
     r.sub.append(h('span', {class: 'host', text: s.host || s.url}));
@@ -248,13 +272,13 @@ function updateRow(r, s) {
     r.m.mem.value.textContent = s.running && s.memoryMB ? `${nf.format(s.memoryMB)} MB` : '–';
 
     r.btnPower.replaceChildren(icon(s.running ? 'stop' : 'play'));
-    r.btnPower.title = s.running ? 'Stoppen' : 'Starten';
+    r.btnPower.title = s.running ? t('ui.act.stop') : t('ui.act.start');
     r.btnPower.classList.toggle('on', !s.running);
     r.btnReload.disabled = !s.running;
     r.btnShow.replaceChildren(icon(s.running && s.visible ? 'eyeOff' : 'eye'));
-    r.btnShow.title = s.running && s.visible ? 'Fenster verbergen (läuft weiter)' : 'Fenster anzeigen';
+    r.btnShow.title = s.running && s.visible ? t('ui.act.hide') : t('ui.act.show');
     r.btnMute.replaceChildren(icon(s.muted ? 'muted' : 'sound'));
-    r.btnMute.title = s.muted ? 'Ton einschalten' : 'Stummschalten';
+    r.btnMute.title = s.muted ? t('ui.act.unmute') : t('ui.act.mute');
     r.btnMute.disabled = !s.running;
 
     const idx = state.surfers.findIndex(x => x.id === s.id);
@@ -277,18 +301,19 @@ function buildEdit(id) {
             patch: {name: name.value, url: url.value, autostart: autostart.checked, isolated: isolated.checked, zoom: Number(zoom.value)}
         });
         if (res) {
-            toast('Surfer gespeichert.', 'ok');
+            toast(t('ui.edit.saved'), 'ok');
             toggleEdit(id, false);
         }
     };
     const remove = async () => {
-        if (!(await confirmDialog(`„${s.name}“ entfernen?`, 'Der Surfer wird gestoppt und aus der Liste gelöscht. Bei eigener Session werden auch deren Cookies gelöscht.', 'Entfernen'))) return;
+        if (!(await confirmDialog(t('ui.confirm.remove.title', {name: s.name}), t('ui.confirm.remove.text'), t('ui.confirm.remove.ok')))) return;
         state.editing.delete(id);
-        if (await call('removeSurfer', id)) toast('Surfer entfernt.', 'ok');
+        if (await call('removeSurfer', id)) toast(t('ui.removed'), 'ok');
     };
     const clearData = async () => {
-        if (!(await confirmDialog('Cookies & Cache löschen?', s.isolated ? 'Die eigene Session dieses Surfers wird geleert (Logins gehen verloren).' : 'Dieser Surfer nutzt die gemeinsame Session – alle Surfer ohne eigene Session verlieren ihre Logins.', 'Löschen'))) return;
-        if (await call('clearSurferData', id)) toast('Session geleert.', 'ok');
+        const text = s.isolated ? t('ui.confirm.clear.isolated') : t('ui.confirm.clear.shared');
+        if (!(await confirmDialog(t('ui.confirm.clear.title'), text, t('ui.confirm.clear.ok')))) return;
+        if (await call('clearSurferData', id)) toast(t('ui.sessionCleared'), 'ok');
     };
     [name, url].forEach(inp => inp.addEventListener('keydown', e => {
         if (e.key === 'Enter') save();
@@ -296,21 +321,21 @@ function buildEdit(id) {
     }));
 
     return h('div', {class: 'surfer-edit'},
-        h('div', {class: 'field'}, h('label', {text: 'Name'}), name),
-        h('div', {class: 'field'}, h('label', {text: 'Start-Adresse'}), url),
+        h('div', {class: 'field'}, h('label', {text: t('ui.edit.name')}), name),
+        h('div', {class: 'field'}, h('label', {text: t('ui.edit.url')}), url),
         h('div', {class: 'full opts'},
-            h('label', {class: 'switch'}, autostart, h('span', {class: 'switch-track'}), h('span', {class: 'switch-label', text: 'Autostart'})),
-            h('label', {class: 'switch', title: 'Eigene Cookies/Logins statt der gemeinsamen Session. Änderung startet den Surfer neu.'}, isolated, h('span', {class: 'switch-track'}), h('span', {class: 'switch-label', text: 'Eigene Session'})),
-            h('label', {class: 'check'}, h('span', {text: 'Zoom'}), zoom)
+            h('label', {class: 'switch'}, autostart, h('span', {class: 'switch-track'}), h('span', {class: 'switch-label', text: t('ui.edit.autostart')})),
+            h('label', {class: 'switch', title: t('ui.edit.isolatedTip')}, isolated, h('span', {class: 'switch-track'}), h('span', {class: 'switch-label', text: t('ui.edit.isolated')})),
+            h('label', {class: 'check'}, h('span', {text: t('ui.edit.zoom')}), zoom)
         ),
         h('div', {class: 'full actions'},
             h('div', null,
-                h('button', {class: 'btn btn-danger-ghost', onclick: remove}, icon('trash'), 'Entfernen'),
-                h('button', {class: 'btn btn-ghost', onclick: clearData, text: 'Cookies & Cache löschen'})
+                h('button', {class: 'btn btn-danger-ghost', onclick: remove}, icon('trash'), t('ui.edit.remove')),
+                h('button', {class: 'btn btn-ghost', onclick: clearData, text: t('ui.edit.clearData')})
             ),
             h('div', null,
-                h('button', {class: 'btn btn-ghost', onclick: () => toggleEdit(id, false), text: 'Abbrechen'}),
-                h('button', {class: 'btn btn-primary', onclick: save, text: 'Speichern'})
+                h('button', {class: 'btn btn-ghost', onclick: () => toggleEdit(id, false), text: t('ui.cancel')}),
+                h('button', {class: 'btn btn-primary', onclick: save, text: t('ui.save')})
             )
         )
     );
@@ -353,8 +378,8 @@ function renderSurfers() {
     const blocked = state.surfers.reduce((n, s) => n + s.blocked, 0);
     $('surfers-empty').hidden = state.surfers.length > 0;
     $('surfers-summary').textContent = state.surfers.length
-        ? `${running} von ${state.surfers.length} aktiv · ${nf.format(blocked)} Anfragen blockiert`
-        : 'Noch keine Surfer eingerichtet';
+        ? t('ui.surfers.summary', {running, total: state.surfers.length, blocked: nf.format(blocked)})
+        : t('ui.surfers.none');
     $('nav-surfers').textContent = state.surfers.length ? `${running}/${state.surfers.length}` : '';
 }
 
@@ -366,7 +391,7 @@ $('add-form').addEventListener('submit', async e => {
         url.value = '';
         $('add-name').value = '';
         url.classList.remove('invalid');
-        toast(`„${res.name}“ hinzugefügt.`, 'ok');
+        toast(t('ui.add.done', {name: res.name}), 'ok');
     } else {
         url.classList.add('invalid');
         url.focus();
@@ -378,10 +403,19 @@ $('add-url').addEventListener('input', e => e.target.classList.remove('invalid')
 
 const settingInputs = new Map();
 
+function defaultLabel(item) {
+    if (item.type === 'bool') return item.default ? t('ui.on') : t('ui.off');
+    if (item.type === 'enum') {
+        const opt = item.options.find(o => o.value === item.default);
+        return opt ? opt.label : item.default;
+    }
+    return String(item.default);
+}
+
 function settingControl(item, section) {
     const current = () => (section === 'browser' ? state.browser : state.settings)[item.key];
     let input;
-    const resetBtn = h('button', {class: 'reset-link', text: 'Standard', title: `Standardwert: ${item.type === 'bool' ? (item.default ? 'an' : 'aus') : item.default}`});
+    const resetBtn = h('button', {class: 'reset-link', text: t('ui.default'), title: t('ui.settings.defaultTip', {v: defaultLabel(item)})});
 
     const save = async value => {
         const method = section === 'browser' ? 'updateBrowser' : 'updateSettings';
@@ -400,15 +434,23 @@ function settingControl(item, section) {
         }
         syncSetting(item, section);
     };
+    const register = () => settingInputs.set(`${section}.${item.key}`, {input, resetBtn, item, section});
+    resetBtn.addEventListener('click', () => save(item.default));
 
     if (item.type === 'bool') {
         input = h('input', {type: 'checkbox'});
         input.addEventListener('change', () => save(input.checked));
-        const control = h('label', {class: 'switch'}, input, h('span', {class: 'switch-track'}));
-        resetBtn.addEventListener('click', () => save(item.default));
-        settingInputs.set(`${section}.${item.key}`, {input, resetBtn, item, section});
-        return {control, resetBtn};
+        register();
+        return {control: h('label', {class: 'switch'}, input, h('span', {class: 'switch-track'})), resetBtn};
     }
+
+    if (item.type === 'enum') {
+        input = h('select', null, item.options.map(o => h('option', {value: o.value, text: o.label})));
+        input.addEventListener('change', () => save(input.value));
+        register();
+        return {control: h('div', {class: 'setting-control'}, input), resetBtn};
+    }
+
     input = h('input', {type: 'number', min: item.min, max: item.max, step: '1'});
     let timer = null;
     const commit = () => {
@@ -416,7 +458,7 @@ function settingControl(item, section) {
         const v = Number(input.value);
         if (input.value === '' || !Number.isFinite(v) || v < item.min || v > item.max) {
             input.classList.add('invalid');
-            toast(`${item.label}: erlaubt sind ${item.min} bis ${item.max}.`, 'error');
+            toast(t('ui.settings.range', {label: item.label, min: item.min, max: item.max}), 'error');
             return;
         }
         input.classList.remove('invalid');
@@ -430,8 +472,7 @@ function settingControl(item, section) {
     input.addEventListener('keydown', e => {
         if (e.key === 'Enter') commit();
     });
-    resetBtn.addEventListener('click', () => save(item.default));
-    settingInputs.set(`${section}.${item.key}`, {input, resetBtn, item, section});
+    register();
     return {control: h('div', {class: 'setting-control'}, input, h('span', {class: 'unit', text: item.unit || ''})), resetBtn};
 }
 
@@ -440,6 +481,7 @@ function syncSetting(item, section) {
     if (!entry) return;
     const value = (section === 'browser' ? state.browser : state.settings)[item.key];
     if (item.type === 'bool') entry.input.checked = Boolean(value);
+    else if (item.type === 'enum') entry.input.value = value;
     else if (document.activeElement !== entry.input) {
         entry.input.value = String(value);
         entry.input.classList.remove('invalid');
@@ -454,7 +496,7 @@ function renderSettingsForm() {
     const groups = [...state.schema.settings.map(g => ({...g, section: 'settings'})), ...state.schema.browser.map(g => ({...g, section: 'browser'}))];
     for (const g of groups) {
         const card = h('div', {class: 'card'},
-            h('div', {class: 'card-head'}, h('h2', {text: g.label}), g.restart ? h('span', {class: 'badge', text: 'Neustart nötig'}) : null)
+            h('div', {class: 'card-head'}, h('h2', {text: g.label}), g.restart ? h('span', {class: 'badge', text: t('ui.settings.restartBadge')}) : null)
         );
         for (const item of g.items) {
             const {control, resetBtn} = settingControl(item, g.section);
@@ -476,11 +518,11 @@ function syncAllSettings() {
 }
 
 $('reset-settings').addEventListener('click', async () => {
-    if (!(await confirmDialog('Alle Einstellungen zurücksetzen?', 'Alle Einstellungen und Browser-Optionen werden auf die Standardwerte gesetzt. Surfer und Listen bleiben erhalten.', 'Zurücksetzen'))) return;
+    if (!(await confirmDialog(t('ui.confirm.reset.title'), t('ui.confirm.reset.text'), t('ui.confirm.reset.ok')))) return;
     const res = await call('resetSettings');
     if (res) {
         applyConfig(res);
-        toast('Einstellungen zurückgesetzt.', 'ok');
+        toast(t('ui.settings.resetDone'), 'ok');
     }
 });
 
@@ -490,31 +532,27 @@ function renderRestartBanner() {
 
 // ---------- lists --------------------------------------------------------------------------------
 
-const LIST_META = {
-    whitelist: {title: 'Whitelist', desc: 'Diese Domains werden nie blockiert. Popups und Navigation zu ihnen sind erlaubt.'},
-    blockedDomains: {title: 'Gesperrte Domains', desc: 'Alle Anfragen an diese Domains werden blockiert.'},
-    blockedExtensions: {title: 'Gesperrte Dateiendungen', desc: 'Anfragen auf Dateien mit diesen Endungen werden blockiert (z. B. .mp4).'},
-    captchaWhitelist: {title: 'Captcha-Whitelist', desc: 'Captcha-Anbieter – werden vor allen anderen Filtern erlaubt.'}
-};
+const LIST_NAMES = ['whitelist', 'blockedDomains', 'blockedExtensions', 'captchaWhitelist'];
 const listEditors = new Map();
 
 function renderLists() {
     const root = $('lists');
     root.textContent = '';
     listEditors.clear();
-    for (const [name, meta] of Object.entries(LIST_META)) {
+    for (const name of LIST_NAMES) {
+        const title = t(`ui.list.${name}.title`);
         const ta = h('textarea', {spellcheck: 'false', rows: '10'});
         const count = h('span', {class: 'list-count'});
         const rejected = h('div', {class: 'list-rejected', hidden: true});
-        const saveBtn = h('button', {class: 'btn btn-primary btn-small', text: 'Speichern'});
-        const resetBtn = h('button', {class: 'btn btn-ghost btn-small', text: 'Standard'});
+        const saveBtn = h('button', {class: 'btn btn-primary btn-small', text: t('ui.save')});
+        const resetBtn = h('button', {class: 'btn btn-ghost btn-small', text: t('ui.default')});
         const ed = {ta, count, rejected, saveBtn};
         listEditors.set(name, ed);
 
         const updateCount = () => {
             const n = ta.value.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#')).length;
             const dirty = ta.value !== state.lists[name].join('\n');
-            count.textContent = `${n} Einträge${dirty ? ' · ungespeichert' : ''}`;
+            count.textContent = dirty ? t('ui.list.unsaved', {n}) : t('ui.list.count', {n});
             count.classList.toggle('dirty', dirty);
             saveBtn.disabled = !dirty;
         };
@@ -531,24 +569,26 @@ function renderLists() {
             if (!res) return;
             state.lists[name] = res.value;
             ta.value = res.value.join('\n');
+            ed.lastSynced = ta.value;
             rejected.hidden = !res.rejected.length;
-            rejected.textContent = res.rejected.length ? `Ungültig und verworfen: ${res.rejected.join(', ')}` : '';
+            rejected.textContent = res.rejected.length ? t('ui.list.rejected', {list: res.rejected.join(', ')}) : '';
             updateCount();
-            toast(`${meta.title} gespeichert.`, res.rejected.length ? 'warn' : 'ok');
+            toast(t('ui.list.saved', {title}), res.rejected.length ? 'warn' : 'ok');
         });
         resetBtn.addEventListener('click', async () => {
-            if (!(await confirmDialog(`${meta.title} zurücksetzen?`, 'Die Liste wird durch die Standardeinträge ersetzt.', 'Zurücksetzen'))) return;
+            if (!(await confirmDialog(t('ui.confirm.resetList.title', {title}), t('ui.confirm.resetList.text'), t('ui.confirm.reset.ok')))) return;
             const res = await call('resetList', name);
             if (!res) return;
             state.lists[name] = res.value;
             ta.value = res.value.join('\n');
+            ed.lastSynced = ta.value;
             rejected.hidden = true;
             updateCount();
         });
 
         root.append(h('div', {class: 'card'},
-            h('div', {class: 'card-head'}, h('h2', {text: meta.title})),
-            h('p', {class: 'hint', text: meta.desc}),
+            h('div', {class: 'card-head'}, h('h2', {text: title})),
+            h('p', {class: 'hint', text: t(`ui.list.${name}.desc`)}),
             ta,
             rejected,
             h('div', {class: 'list-meta'}, count, h('div', {class: 'toolbar'}, resetBtn, saveBtn))
@@ -583,7 +623,7 @@ $('ua-save').addEventListener('click', async () => {
     if (res) {
         state.userAgent = res.value;
         $('ua-input').value = res.value;
-        toast('User-Agent gespeichert.', 'ok');
+        toast(t('ui.ua.saved'), 'ok');
     }
 });
 
@@ -610,14 +650,13 @@ function renderStats() {
     $('t-ram').textContent = `${nf1.format(ram)} %`;
     $('t-ram-sub').textContent = `${nf.format(st.memory.usedMB)} / ${nf.format(st.memory.totalMB)} MB`;
     $('t-app').textContent = `${nf.format(st.appMemoryMB)} MB`;
-    $('t-app-sub').textContent = `${st.processes.length} Prozesse · CPU ${nf1.format(st.appCpu)} %`;
+    $('t-app-sub').textContent = t('ui.sys.appSub', {n: st.processes.length, cpu: nf1.format(st.appCpu)});
     $('t-blocked').textContent = nf.format(st.totalBlocked);
     $('overload-status').textContent = st.overload.enabled
-        ? `Überlastschutz aktiv · Überschreitungen ${st.overload.count}/${st.overload.limit}`
-        : 'Überlastschutz ist ausgeschaltet (Einstellungen → Überwachung).';
+        ? t('ui.sys.overloadOn', {n: st.overload.count, max: st.overload.limit})
+        : t('ui.sys.overloadOff');
 
-    const body = $('proc-body');
-    body.replaceChildren(...st.processes.map(p => h('tr', null,
+    $('proc-body').replaceChildren(...st.processes.map(p => h('tr', null,
         h('td', {text: String(p.pid)}),
         h('td', {text: p.name ? `${p.type} (${p.name})` : p.type}),
         h('td', {text: p.owner || ''}),
@@ -640,15 +679,13 @@ function drawChart() {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
     const css = getComputedStyle(document.documentElement);
-    const grid = css.getPropertyValue('--border').trim();
-    const muted = css.getPropertyValue('--muted').trim();
     const padL = 34;
     const plotW = w - padL - 4;
     const plotH = hgt - 16;
 
     ctx.font = '11px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = muted;
-    ctx.strokeStyle = grid;
+    ctx.fillStyle = css.getPropertyValue('--muted').trim();
+    ctx.strokeStyle = css.getPropertyValue('--border').trim();
     ctx.lineWidth = 1;
     for (const v of [0, 25, 50, 75, 100]) {
         const y = 6 + plotH - (v / 100) * plotH;
@@ -681,14 +718,13 @@ function drawChart() {
 window.addEventListener('resize', () => drawChart());
 
 $('clear-shared').addEventListener('click', async () => {
-    if (!(await confirmDialog('Gemeinsame Session leeren?', 'Cookies, Logins und Cache aller Surfer ohne eigene Session werden gelöscht.', 'Löschen'))) return;
-    if (await call('clearSharedSession')) toast('Gemeinsame Session geleert.', 'ok');
+    if (!(await confirmDialog(t('ui.confirm.clearShared.title'), t('ui.confirm.clearShared.text'), t('ui.confirm.clear.ok')))) return;
+    if (await call('clearSharedSession')) toast(t('ui.sharedCleared'), 'ok');
 });
 document.querySelectorAll('[data-folder]').forEach(b => b.addEventListener('click', () => call('openFolder', b.dataset.folder)));
 
 // ---------- log ----------------------------------------------------------------------------------
 
-const LEVEL_LABEL = {debug: 'DEBUG', info: 'INFO', warn: 'WARN', error: 'FEHLER', block: 'BLOCK'};
 const MAX_LOG = 3000;
 const MAX_LOG_DOM = 1500;
 const logFilter = {levels: new Set(['info', 'warn', 'error', 'block']), text: ''};
@@ -696,29 +732,28 @@ const logFilter = {levels: new Set(['info', 'warn', 'error', 'block']), text: ''
 function logMatches(e) {
     if (!logFilter.levels.has(e.level)) return false;
     if (!logFilter.text) return true;
-    const t = logFilter.text;
-    return e.message.toLowerCase().includes(t) || e.source.toLowerCase().includes(t);
+    const q = logFilter.text;
+    return e.message.toLowerCase().includes(q) || e.source.toLowerCase().includes(q);
 }
 
 function logRow(e) {
     return h('div', {class: `log-row lv-${e.level}`},
         h('span', {class: 'log-time', text: fmtTime(e.ts)}),
-        h('span', {class: 'log-level', text: LEVEL_LABEL[e.level] || e.level}),
+        h('span', {class: 'log-level', text: t(`ui.lv.${e.level}`)}),
         h('span', {class: 'log-source', text: e.source, title: e.source}),
         h('span', {class: 'log-msg', text: e.message})
     );
 }
 
 function renderLog() {
-    const el = $('log');
     const list = state.log.filter(logMatches).slice(-MAX_LOG_DOM);
-    el.replaceChildren(...list.map(logRow));
+    $('log').replaceChildren(...list.map(logRow));
     updateLogCount();
     scrollLogToEnd();
 }
 
 function updateLogCount() {
-    $('log-count').textContent = `${nf.format(state.log.length)} Einträge im Speicher`;
+    $('log-count').textContent = t('ui.log.count', {n: nf.format(state.log.length)});
 }
 
 function scrollLogToEnd() {
@@ -767,7 +802,7 @@ $('log-search').addEventListener('input', e => {
 $('log-follow').addEventListener('change', scrollLogToEnd);
 $('log-clear').addEventListener('click', () => call('clearLog'));
 $('log-export').addEventListener('click', async () => {
-    if (await call('exportLog')) toast('Protokoll exportiert.', 'ok');
+    if (await call('exportLog')) toast(t('ui.log.exported'), 'ok');
 });
 
 // ---------- updates ------------------------------------------------------------------------------
@@ -775,63 +810,49 @@ $('log-export').addEventListener('click', async () => {
 function renderUpdate() {
     const u = state.update;
     if (!u) return;
+    const params = {current: u.current, latest: u.latest, message: u.message || t('ui.err.unknown')};
     const status = $('update-status');
-    const texts = {
-        idle: 'Noch nicht geprüft.',
-        checking: 'Suche nach Updates …',
-        none: `Surfer ist aktuell (Version ${u.current}).`,
-        available: `Version ${u.latest} ist verfügbar (installiert: ${u.current}).`,
-        downloading: `Lade Version ${u.latest} herunter …`,
-        installing: 'Installiere Update …',
-        installed: `Version ${u.latest} wurde installiert.`,
-        error: `Fehler: ${u.message || 'unbekannt'}`
-    };
-    status.textContent = texts[u.status] || u.status;
+    status.textContent = t(`ui.upd.${u.status}`, params);
     status.className = `update-status${u.status === 'available' || u.status === 'installed' ? ' available' : ''}${u.status === 'error' ? ' error' : ''}`;
     const busy = ['checking', 'downloading', 'installing'].includes(u.status);
+    const install = $('update-install');
     $('update-check').disabled = busy;
-    $('update-install').hidden = !(u.status === 'available' && u.canInstall) && u.status !== 'installed';
-    $('update-install').textContent = u.status === 'installed' ? (u.needsDependencyInstall ? 'Surfer beenden' : 'Jetzt neu starten') : 'Update installieren';
-    $('update-install').disabled = busy;
+    install.hidden = !(u.status === 'available' && u.canInstall) && u.status !== 'installed';
+    install.textContent = u.status === 'installed' ? (u.needsDependencyInstall ? t('ui.upd.quit') : t('ui.upd.restart')) : t('ui.upd.install');
+    install.disabled = busy;
     $('update-progress').hidden = u.status !== 'downloading';
     $('update-progress-fill').style.width = `${Math.round((u.progress || 0) * 100)}%`;
 
     let hint = '';
     if (u.status === 'available' && !u.canInstall) hint = u.reason || '';
     if (u.status === 'installed') {
-        hint = u.needsDependencyInstall
-            ? 'Die Abhängigkeiten haben sich geändert. Beende Surfer und starte ihn über start.bat / start.sh neu – die Abhängigkeiten werden dabei automatisch installiert.'
-            : 'Starte Surfer neu, um die neue Version zu verwenden.';
-        if (u.backup) hint += ` Sicherung der alten Version: ${u.backup}`;
+        hint = u.needsDependencyInstall ? t('ui.upd.hintDeps') : t('ui.upd.hintRestart');
+        if (u.backup) hint += ` ${t('ui.upd.hintBackup', {backup: u.backup})}`;
     }
     $('update-hint').textContent = hint;
 
     const showBanner = u.status === 'available' || u.status === 'installed';
     $('update-banner').hidden = !showBanner || state.view === 'info';
-    $('update-banner-text').textContent = u.status === 'installed' ? `Update auf ${u.latest} installiert – Neustart erforderlich.` : `Neue Version ${u.latest} verfügbar.`;
+    $('update-banner-text').textContent = u.status === 'installed' ? t('ui.upd.bannerInstalled', params) : t('ui.upd.bannerAvailable', params);
 }
 
 $('update-check').addEventListener('click', () => call('checkUpdate'));
 $('update-install').addEventListener('click', async () => {
     const u = state.update;
     if (u.status === 'installed') {
-        if (u.needsDependencyInstall) await call('quitApp');
-        else await call('restartApp');
+        await call(u.needsDependencyInstall ? 'quitApp' : 'restartApp');
         return;
     }
-    if (!(await confirmDialog(`Auf Version ${u.latest} aktualisieren?`, 'Die aktuelle Version wird im Ordner backup/ gesichert. Deine Konfiguration (config/) bleibt unverändert.', 'Installieren'))) return;
+    if (!(await confirmDialog(t('ui.upd.confirmTitle', {latest: u.latest}), t('ui.upd.confirmText'), t('ui.upd.confirmOk')))) return;
     call('installUpdate');
 });
-$('update-banner-open').addEventListener('click', () => {
-    showView('info');
-    renderUpdate();
-});
+$('update-banner-open').addEventListener('click', () => showView('info'));
 
 // ---------- info ---------------------------------------------------------------------------------
 
 function renderInfo() {
     const a = state.app;
-    $('app-version').textContent = `Version ${a.version}`;
+    $('app-version').textContent = t('ui.version', {v: a.version});
     const kv = $('info-kv');
     kv.textContent = '';
     const rowsKv = [
@@ -839,11 +860,11 @@ function renderInfo() {
         ['Electron', a.electron],
         ['Chromium', a.chrome],
         ['Node.js', a.node],
-        ['System', a.platform],
-        ['Konfiguration', a.paths.config],
-        ['Protokolle', a.paths.logs],
-        ['Browserprofil', a.paths.userData],
-        ['Standard-User-Agent', a.userAgentDefault]
+        [t('ui.info.system'), a.platform],
+        [t('ui.info.config'), a.paths.config],
+        [t('ui.info.logs'), a.paths.logs],
+        [t('ui.info.userData'), a.paths.userData],
+        [t('ui.info.ua'), a.userAgentDefault]
     ];
     for (const [k, v] of rowsKv) kv.append(h('dt', {text: k}), h('dd', {text: v}));
 }
@@ -864,11 +885,12 @@ function applyConfig(cfg) {
 }
 
 async function init() {
-    const data = await call('getState');
+    const data = await call('getState', undefined, {quiet: true});
     if (!data) {
-        document.body.textContent = 'Verbindung zum Hauptprozess fehlgeschlagen.';
+        document.body.textContent = 'Connection to the main process failed. / Verbindung zum Hauptprozess fehlgeschlagen.';
         return;
     }
+    applyI18n(data.i18n);
     Object.assign(state, {
         app: data.app,
         schema: data.schema,
@@ -889,7 +911,6 @@ async function init() {
     renderSurfers();
     renderStats();
     renderLog();
-    renderUpdate();
 
     api.on('surfers', list => {
         state.surfers = list;
@@ -908,7 +929,7 @@ async function init() {
     api.on('update', u => {
         state.update = u;
         renderUpdate();
-        if (u.status === 'error' && u.userInitiated) toast(`Update: ${u.message}`, 'error', 6000);
+        if (u.status === 'error' && u.userInitiated) toast(t('ui.upd.toastError', {message: u.message}), 'error', 6000);
     });
     api.on('notice', n => toast(n.message, n.type || 'info', n.ms || 4000));
 
@@ -917,7 +938,6 @@ async function init() {
         saved = localStorage.getItem('surfer.view');
     } catch { /* ignore */ }
     showView(saved && document.getElementById(`view-${saved}`) ? saved : 'surfers');
-    renderUpdate();
 
     // Uptime and countdown labels tick even without updates from the main process.
     setInterval(() => {

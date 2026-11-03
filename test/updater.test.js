@@ -83,3 +83,20 @@ test('update: git checkouts are never overwritten', async () => {
     await assert.rejects(updater.install(), /git pull/);
     assert.equal(fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf-8'), 'old');
 });
+
+test('update: only the newest backups are kept', async () => {
+    const {root, updater} = setup();
+    for (let i = 0; i < 5; i++) {
+        const dir = path.join(root, 'backup', `0.${i}-old`);
+        fs.mkdirSync(dir, {recursive: true});
+        const t = new Date(2020, 0, i + 1);
+        fs.utimesSync(dir, t, t);
+    }
+    await updater.check();
+    const res = await updater.install();
+    assert.equal(res.status, 'installed', res.message);
+    const left = fs.readdirSync(path.join(root, 'backup')).sort();
+    assert.equal(left.length, 3);
+    assert.ok(left.includes(path.basename(res.backup)));
+    assert.ok(left.includes('0.4-old') && left.includes('0.3-old'));
+});

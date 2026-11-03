@@ -1,125 +1,142 @@
-# Surfer v1.0
+# Surfer
 
-Surfer ist ein auf Electron basierender Browser für Surfbars. Du steuerst alles in einem **Hauptfenster**. **Jeder Surfer läuft in einem eigenen Subfenster.** Textdateien oder Konsolenbefehle brauchst du dafür nicht.
+**English** · [Deutsch](README.de.md)
 
-Läuft unter **Windows**, **Linux** und **macOS**.
+Surfer is an Electron-based browser for surfbars. You control everything from one **main window**, and **every surfer runs in its own sub window**. You don't need text files or console commands.
+
+Runs on **Windows**, **Linux** and **macOS**. The interface is available in **English and German** and follows the system language automatically; you can switch it under *Settings → General*.
+
+![Surfer main window](docs/screenshot-surfers-en.png)
 
 ---
 
 ## Installation
 
-1. **Node.js installieren** (Version 20 oder neuer): 👉 [nodejs.org](https://nodejs.org/en/download)
-2. **Projekt herunterladen**: 👉 [ZIP herunterladen](https://github.com/dev-101010/surfer/archive/refs/heads/master.zip) und in einen beliebigen Ordner entpacken.
-3. **Starten**
-   - **Windows:** Doppelklick auf `start.bat`
-   - **Linux/macOS:** einmalig `chmod +x start.sh`, danach `./start.sh`
+1. **Install Node.js** (version 20 or newer): 👉 [nodejs.org](https://nodejs.org/en/download)
+2. **Download the project**: 👉 [Download ZIP](https://github.com/dev-101010/surfer/archive/refs/heads/master.zip) and extract it to any folder.
+3. **Start**
+   - **Windows:** double-click `start.bat`
+   - **Linux/macOS:** run `chmod +x start.sh` once, then `./start.sh`
 
-Beim ersten Start installiert das Startskript die Abhängigkeiten automatisch, nur dann ist ein Konsolenfenster zu sehen. Danach öffnet sich das Hauptfenster, und Surfer läuft ohne Konsole weiter. Ein zweiter Start holt einfach das vorhandene Hauptfenster nach vorn.
+On the first start the script installs the dependencies automatically; a console window is visible only while that happens. Then the main window opens and Surfer keeps running without a console. Starting it again just brings the existing main window to the front.
 
-**Fehlersuche:** `start-debug.bat` (Windows) bzw. `./start.sh --debug` startet Surfer mit offener Konsole und Live-Protokoll. Scheitert der Start, zeigt Surfer eine Fehlermeldung und schreibt Details nach `logs/startup-error.log`. Unter Linux und macOS steht die Ausgabe zusätzlich in `logs/start.log`.
+**Troubleshooting:** `start-debug.bat` (Windows) or `./start.sh --debug` starts Surfer with an open console and live log. If the start fails, Surfer shows an error message and writes details to `logs/startup-error.log`. On Linux/macOS the output is also written to `logs/start.log`.
 
-**Linux-Hinweis:** Auf manchen Systemen (z. B. Ubuntu 24.04) ist die Chromium-Sandbox blockiert. `start.sh` erkennt das und zeigt den passenden Befehl zur Behebung an.
+**Linux note:** on some systems (e.g. Ubuntu 24.04) the Chromium sandbox is blocked. `start.sh` detects this and shows the command to fix it.
 
 ---
 
-## Bedienung
+## Usage
 
-### Hauptfenster
+### Main window
 
-| Bereich | Funktion |
+| Section | What it does |
 |---|---|
-| **Surfer** | Surfbar-Links hinzufügen, umbenennen, sortieren und löschen. Pro Surfer: starten/stoppen, neu laden, Fenster zeigen/verbergen, Ton, Zoom, Autostart, eigene Session. Sammelaktionen: alle starten/stoppen/neu laden, Fenster im Raster anordnen, alle zeigen/verbergen. Live-Anzeige von Status, Seitentitel, Laufzeit, Reloads, blockierten Anfragen sowie CPU und RAM. |
-| **Einstellungen** | Alle Optionen als Schalter und Zahlenfelder mit Erklärung. Werte werden geprüft, sofort gespeichert und wo möglich live übernommen. Jede Option lässt sich einzeln auf den Standard zurücksetzen. |
-| **Filter & Identität** | Whitelist, gesperrte Domains, gesperrte Dateiendungen, Captcha-Whitelist und User-Agent. Ungültige Einträge werden gemeldet und verworfen. |
-| **System** | System-CPU und -RAM mit 5-Minuten-Verlauf, alle Prozesse mit Zuordnung zum Surfer, Werkzeuge (Session leeren, Ordner öffnen). |
-| **Protokoll** | Live-Protokoll mit Filter nach Stufe und Text sowie Export. |
-| **Info** | Konzept, Versionen, Pfade und **Updates**. |
+| **Surfers** | Add, rename, sort and remove surfbar links. Per surfer: start/stop, reload, show/hide window, audio, zoom, autostart, own session. Bulk actions: start/stop/reload all, arrange windows in a grid, show/hide all. Live status, page title, uptime, reloads, blocked requests, CPU and RAM. |
+| **Settings** | Every option as a switch, number field or selection with an explanation. Values are validated, saved immediately and applied live where possible. Each option can be reset to its default. |
+| **Filters & identity** | Whitelist, blocked domains, blocked file extensions, captcha whitelist and user agent. Invalid entries are reported and discarded. |
+| **System** | System CPU and RAM with a 5-minute history, all processes with their surfer, tools (clear session, open folders). |
+| **Log** | Live log with level and text filter, export. |
+| **About** | Concept, versions, paths and **updates**. |
 
-### Surfer-Subfenster
+![Settings](docs/screenshot-settings-en.png)
 
-Jedes Surfer-Fenster hat oben eine Werkzeugleiste mit Status, Adresse, *Zurück*, *Neu laden*, *Start-Adresse*, Zoom, Ton, *Verbergen* und *Hauptfenster*. Ein verborgener Surfer läuft im Hintergrund weiter. Schließt du ein Surfer-Fenster, wird nur dieser Surfer gestoppt. Schließt du das Hauptfenster, wird Surfer beendet (mit Rückfrage, falls noch Surfer laufen).
+### Surfer sub windows
+
+Every surfer window has a toolbar at the top with status, address, *back*, *reload*, *start address*, zoom, audio, *hide* and *main window*. A hidden surfer keeps running in the background. Closing a surfer window only stops that surfer. Closing the main window quits Surfer (with a confirmation if surfers are still running).
 
 ---
 
-## Funktionen
+## Features
 
-**Wächter**
-- Nach Absturz, Ladefehler oder Hänger wird die Seite automatisch neu geladen. Die Wartezeit verdoppelt sich bei jedem weiteren Fehler (bis 32×).
-- Optional: Reload-Intervall, Stillstand-Erkennung (Neuladen, wenn sich Adresse, Titel und Frames eine Zeit lang nicht ändern), Überlastschutz für einzelne Renderer und für das ganze System.
-- `alert`/`confirm`/`prompt` und `beforeunload` können einen unbeaufsichtigten Surfer nicht mehr blockieren.
+**Watchdogs**
+- After a crash, load error or hang, the page is reloaded automatically. The delay doubles with every further error (up to 32×).
+- Optional:
+  - reload interval
+  - stall detection: reload when address, title and frames stop changing, also when a page hangs while loading
+  - overload protection for single renderers and the whole system
+- `alert`/`confirm`/`prompt` and `beforeunload` can no longer block an unattended surfer.
 
-**Seiten-Skripte** (laufen vor den Seitenskripten in jedem Frame)
-- Sichtbarkeit und Fokus werden vorgetäuscht, auch in iFrames.
-- Optional werden Mausbewegungen simuliert.
-- Der DOM-Wächter entfernt Video-/Audio-Elemente und `srcdoc`-iFrames, sobald sie auftauchen.
+**Page scripts** (run before the page's own scripts, in every frame)
+- Visibility and focus are faked, also in iframes.
+- Mouse movements can optionally be simulated.
+- The DOM guard removes video/audio elements and `srcdoc` iframes as soon as they appear.
 
-**Filter**
-Geprüft wird der echte Hostname inklusive Subdomains, nicht mehr ein beliebiger Textausschnitt der URL. Die Reihenfolge:
-Captcha-Whitelist → iFrame-Tiefe → Whitelist → Medien → gesperrte Domains → Dateiendungen (Pfad ohne Query) → WebSockets / blob- und data-Frames.
-Dazu kommen Download-Sperre, Navigationssperre auf die eigene Domain, Popup-Filter mit Limit pro Surfer und der Schutz gegen WebRTC-IP-Leaks.
+**Filters**
+Requests are checked against the real host name including subdomains, not against arbitrary parts of the URL text. The order is:
+captcha whitelist → iframe depth → whitelist → media → blocked domains → file extensions (path without query) → WebSockets / blob and data frames.
+Additionally: download blocking, navigation restricted to the surfer's own domain, popup filter with a per-surfer limit, and protection against WebRTC IP leaks.
 
-**Sitzungen**
-Standardmäßig teilen sich alle Surfer eine dauerhafte Browser-Sitzung, ein Login gilt also für alle. Ein Surfer mit „Eigene Session“ hat eigene Cookies.
+**Sessions**
+By default all surfers share one persistent browser session, so one login works for all of them. A surfer with "Own session" has its own cookies. Zoom is kept per window, even for surfers on the same site.
 
-**Härtung**
-- Seiteninhalte laufen in einer Sandbox mit Context Isolation, ohne Node.js, ohne DevTools, ohne `<webview>`.
-- Alle Berechtigungsanfragen (Kamera, Mikrofon, Standort, Benachrichtigungen …) werden abgelehnt.
-- Die eigene Oberfläche hat eine strikte CSP. IPC-Aufrufe werden nur vom Hauptfenster angenommen und alle Eingaben serverseitig geprüft.
-- Die Konfiguration wird atomar geschrieben und gesichert (`settings.json.bak`). Eine beschädigte Datei wird erkannt und beiseitegelegt.
-- Der Standard-User-Agent enthält keine Electron-Kennung.
+**Hardening**
+- Page content runs sandboxed with context isolation, without Node.js, DevTools or `<webview>`.
+- All permission requests (camera, microphone, location, notifications …) are denied.
+- The app's own UI uses a strict CSP. IPC calls are only accepted from the main window and all input is validated in the main process.
+- Untrusted text (page titles, URLs) is stripped of control characters before it reaches the console or log file.
+- The configuration is written atomically with a backup (`settings.json.bak`); a corrupt file is detected and set aside.
+- The default user agent contains no Electron marker.
 
 ---
 
 ## Updates
 
-Surfer sucht beim Start und danach alle 24 Stunden auf GitHub nach einer neuen Version (abschaltbar unter *Einstellungen → Updates*). Ist eine neue Version verfügbar, erscheint ein Hinweis, und unter **Info → Updates** kannst du sie installieren:
+Surfer checks GitHub for a new version at startup and every 24 hours (can be switched off under *Settings → Updates*). If a new version is available, a notice appears, and you can install it under **About → Updates**:
 
-1. Die neue Version wird heruntergeladen und geprüft.
-2. Die aktuelle Version wird nach `backup/<version>-<zeitpunkt>/` gesichert.
-3. Die Programmdateien werden ersetzt. `config/`, `logs/` und `node_modules/` bleiben unverändert.
-4. Schlägt etwas fehl, wird die alte Version automatisch wiederhergestellt.
-5. Neustart. Haben sich die Abhängigkeiten geändert, beendest du Surfer und startest ihn über `start.bat`/`start.sh` neu. Das Skript installiert sie dann automatisch.
+1. The new version is downloaded and verified.
+2. The current version is backed up to `backup/<version>-<time>/`; the 3 newest backups are kept.
+3. The program files are replaced. `config/`, `logs/` and `node_modules/` stay untouched.
+4. If anything fails, the previous version is restored automatically.
+5. Restart. If the dependencies changed, quit Surfer and start it via `start.bat`/`start.sh`, which then installs them automatically.
 
-Bei einem Git-Checkout wird nur geprüft, nicht installiert. Aktualisiere dann mit `git pull`.
+Git checkouts are only checked, never overwritten. Update them with `git pull`.
 
 ---
 
-## Dateien
+## Files
 
-| Pfad | Inhalt |
+| Path | Contents |
 |---|---|
-| `config/settings.json` | Gesamte Konfiguration (Einstellungen, Listen, Surfer). Wird über das Hauptfenster verwaltet. |
-| `logs/surfer.log` | Protokolldatei (nur wenn aktiviert, rotiert bei 5 MB) |
-| `logs/startup-error.log`, `logs/start.log` | Fehler beim Programmstart |
-| `backup/` | Sicherungen vor Updates |
+| `config/settings.json` | Complete configuration (settings, lists, surfers), managed through the main window |
+| `logs/surfer.log` | Log file (only if enabled, rotates at 5 MB) |
+| `logs/startup-error.log`, `logs/start.log` | Errors during startup |
+| `backup/` | Backups made before updates |
 
-**Umstieg von v0.x:** Beim ersten Start werden die alten Dateien in `config/` (`config.json`, `browser_deep_config.json`, `surfbar_links.txt`, `whitelist.txt` usw.) automatisch in `settings.json` übernommen. Danach werden sie nicht mehr verwendet.
+**Upgrading from v0.x:** on the first start the old files in `config/` (`config.json`, `browser_deep_config.json`, `surfbar_links.txt`, `whitelist.txt` …) are imported into `settings.json` automatically. They are no longer used afterwards.
 
-Für mehrere getrennte Installationen oder zum Testen kann mit der Umgebungsvariable `SURFER_CONFIG_DIR` ein anderer Konfigurationsordner gewählt werden. Er bekommt dann auch ein eigenes Browserprofil.
+To run several separate installations, or for testing, set the environment variable `SURFER_CONFIG_DIR` to another configuration folder; it then also gets its own browser profile.
 
 ---
 
-## Entwicklung
+## Development
 
 ```bash
 npm install
-npm start      # Surfer starten
-npm test       # Unit-Tests (Filter, Domains, Konfiguration, Updater)
+npm start      # start Surfer
+npm test       # unit tests (filters, domains, configuration, updater, logger, translations)
+npm run icons  # regenerate assets/icon.png and icon.ico from the icon definition
 ```
 
-Aufbau:
+Structure:
 
 ```
-src/main/        Hauptprozess
-  main.js          Einstieg, Chromium-Schalter, Lebenszyklus
-  control.js       Hauptfenster + IPC-Schnittstelle
-  surfer-manager.js Sessions, Request-Filter, Popups, Metriken, Überlast
-  surfer.js        ein Surfer = BaseWindow mit Werkzeugleiste + Inhalt
-  filter.js        Filterentscheidungen (ohne Electron, getestet)
-  config-store.js  Laden/Validieren/Speichern, Migration
-  schema.js        alle Einstellungen mit Typ, Grenzen, Beschreibung
-  updater.js       Update-Prüfung und -Installation
-src/preload/     Brücken zwischen Seiten und Hauptprozess
-src/renderer/    Hauptfenster (control) und Werkzeugleiste (toolbar)
-test/            node:test-Suite
+src/main/          main process
+  main.js            entry point, Chromium switches, lifecycle
+  control.js         main window + IPC interface
+  surfer-manager.js  sessions, request filter, popups, metrics, overload
+  surfer.js          one surfer = BaseWindow with toolbar + content
+  filter.js          filter decisions (no Electron, unit tested)
+  config-store.js    load/validate/save, migration
+  schema.js          all settings with type and limits
+  i18n.js            German and English texts
+  updater.js         update check and installation
+src/preload/       bridges between pages and main process
+src/renderer/      main window (control) and toolbar
+test/              node:test suite
+assets/            app icon (SVG, PNG, ICO)
+docs/              screenshots
+scripts/           build-icons.js
 ```
+
+New texts go into `src/main/i18n.js` in **both** languages. `npm test` fails if a key is missing in one language or a key used in the code does not exist.

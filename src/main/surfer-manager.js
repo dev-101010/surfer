@@ -5,6 +5,8 @@ const {EventEmitter} = require('events');
 const {Surfer, contentPreferences} = require('./surfer');
 const {RequestFilter} = require('./filter');
 const {createCpuSampler, memoryUsage} = require('./system-stats');
+const {appIcon} = require('./icon');
+const {t} = require('./i18n');
 
 const METRICS_INTERVAL_MS = 2000;
 const HISTORY_LENGTH = 150; // 5 minutes at 2 s
@@ -23,6 +25,11 @@ function frameDepth(frame) {
         }
     } catch { /* frame destroyed meanwhile */ }
     return depth;
+}
+
+function webContentsOf(map) {
+    const {webContents} = require('electron');
+    return [...map.keys()].map(id => webContents.fromId(id)).filter(wc => wc && !wc.isDestroyed());
 }
 
 function headerValue(headers, name) {
@@ -77,7 +84,7 @@ class SurferManager extends EventEmitter {
         const ids = new Set(this.store.data.surfers.map(s => s.id));
         for (const [id, surfer] of this.surfers) {
             if (!ids.has(id)) {
-                surfer.stop('entfernt');
+                surfer.stop(t('r.removed'));
                 this.surfers.delete(id);
             }
         }
@@ -148,7 +155,7 @@ class SurferManager extends EventEmitter {
         ses.setSpellCheckerEnabled(false);
         ses.setPermissionRequestHandler((wc, permission, callback) => {
             const surfer = wc && this.contents.get(wc.id);
-            this.logger.debug(surfer ? surfer.name : 'Surfer', `Berechtigung verweigert: ${permission}`);
+            this.logger.debug(surfer ? surfer.name : 'Surfer', t('sf.permissionDenied', {permission}));
             callback(false);
         });
         ses.setPermissionCheckHandler(() => false);
@@ -164,7 +171,7 @@ class SurferManager extends EventEmitter {
                     frameDepth: details.resourceType === 'subFrame' ? frameDepth(details.frame) : 0
                 });
             } catch (err) {
-                this.logger.error('Filter', `Fehler bei ${details.url}: ${err.message}`);
+                this.logger.error('Filter', t('f.error', {url: details.url, error: err.message}));
                 verdict = {block: false};
             }
             if (verdict.block) {
@@ -200,7 +207,7 @@ class SurferManager extends EventEmitter {
             const surfer = wc && this.contents.get(wc.id);
             this.totalBlocked++;
             if (surfer) surfer.countBlocked();
-            this.logger.block(surfer ? surfer.name : 'Surfer', `Download blockiert: ${item.getURL()}`);
+            this.logger.block(surfer ? surfer.name : 'Surfer', t('f.download', {url: item.getURL()}));
         });
     }
 
@@ -214,7 +221,7 @@ class SurferManager extends EventEmitter {
         const now = Date.now();
         const bl = this.blockLog;
         if (now - bl.windowStart > 1000) {
-            if (bl.suppressed > 0) this.logger.block('Filter', `… ${bl.suppressed} weitere Blockierungen nicht einzeln protokolliert`);
+            if (bl.suppressed > 0) this.logger.block('Filter', t('f.suppressed', {n: bl.suppressed}));
             bl.windowStart = now;
             bl.count = 0;
             bl.suppressed = 0;
@@ -258,7 +265,7 @@ class SurferManager extends EventEmitter {
             }
             const s = this.store.data.settings;
             if (surfer.popups.size >= s.MAX_POPUPS) {
-                this._onBlocked({webContentsId: wc.id, url: details.url}, `Popup-Limit (${s.MAX_POPUPS}) erreicht`);
+                this._onBlocked({webContentsId: wc.id, url: details.url}, t('f.popupLimit', {n: s.MAX_POPUPS}));
                 return {action: 'deny'};
             }
             return {
@@ -271,6 +278,7 @@ class SurferManager extends EventEmitter {
                     skipTaskbar: !s.SHOW_IN_TASKBAR,
                     autoHideMenuBar: true,
                     backgroundColor: '#ffffff',
+                    icon: appIcon(),
                     webPreferences: contentPreferences(s)
                 }
             };
@@ -302,6 +310,11 @@ class SurferManager extends EventEmitter {
         return this.toolbars.get(wc.id) || null;
     }
 
+    /** Reloads all toolbars, e.g. after a language change. */
+    reloadToolbars() {
+        for (const wc of webContentsOf(this.toolbars)) wc.reload();
+    }
+
     /** Flags for the content preload (requested synchronously from every frame). */
     pageConfig() {
         const s = this.store.data.settings;
@@ -315,22 +328,36 @@ class SurferManager extends EventEmitter {
     // ---- bulk actions ---------------------------------------------------------------------
 
     startAutostart() {
-        const list = this.ordered().filter(s => s.cfg.autostart);
-        list.forEach((surfer, i) => setTimeout(() => !this.quitting && surfer.start(), i * 400));
+        this._startStaggered(this.ordered().filter(s => s.cfg.autostart));
         if (!this.store.data.surfers.length) {
-            this.logger.info('Surfer', 'Noch keine Surfer eingerichtet – füge im Hauptfenster deinen ersten Surfbar-Link hinzu.');
+            this.logger.info('Surfer', t('sf.noSurfers'));
         }
     }
 
     startAll() {
-        this.ordered().forEach((surfer, i) => setTimeout(() => !this.quitting && surfer.start(), i * 400));
+        this._startStaggered(this.ordered());
     }
 
-    stopAll(reason = 'Alle stoppen') {
+    /** Starts surfers one after another (spreads the load); cancelled by stopAll(). */
+    _startStaggered(list) {
+        this._cancelPendingStarts();
+        const pending = list.filter(s => !s.running);
+        this.pendingStarts = pending.map((surfer, i) => setTimeout(() => {
+            if (!this.quitting && !surfer.running) surfer.start();
+        }, i * 400));
+    }
+
+    _cancelPendingStarts() {
+        for (const t of this.pendingStarts || []) clearTimeout(t);
+        this.pendingStarts = [];
+    }
+
+    stopAll(reason = t('r.stopAll')) {
+        this._cancelPendingStarts();
         for (const surfer of this.surfers.values()) surfer.stop(reason);
     }
 
-    reloadAll(reason = 'Alle neu laden') {
+    reloadAll(reason = t('r.reloadAll')) {
         for (const surfer of this.surfers.values()) surfer.reload(reason);
     }
 
@@ -375,16 +402,16 @@ class SurferManager extends EventEmitter {
         const ses = session.fromPartition(cfg ? this.partitionFor(cfg) : SHARED_PARTITION);
         await ses.clearStorageData();
         await ses.clearCache();
-        this.logger.info('Surfer', `Cookies und Cache gelöscht (${cfg ? cfg.name : 'gemeinsame Session'}).`);
+        this.logger.info('Surfer', t('sf.sessionCleared', {name: cfg ? cfg.name : t('sf.sharedSession')}));
     }
 
     async removeSurfer(id) {
         const surfer = this.surfers.get(id);
         const cfg = this.store.getSurfer(id);
-        if (!cfg) return {ok: false, errors: ['Surfer nicht gefunden']};
+        if (!cfg) return {ok: false, errors: [t('err.surferNotFound')]};
         if (surfer && surfer.running) {
             const closed = new Promise(resolve => surfer.win.once('closed', resolve));
-            surfer.stop('entfernt');
+            surfer.stop(t('r.removed'));
             await closed;
         }
         if (cfg.isolated) {
@@ -398,7 +425,7 @@ class SurferManager extends EventEmitter {
     shutdown() {
         this.quitting = true;
         for (const t of Object.values(this.timers)) clearInterval(t);
-        this.stopAll('Programmende');
+        this.stopAll(t('r.shutdown'));
     }
 
     // ---- change propagation ---------------------------------------------------------------
@@ -446,7 +473,7 @@ class SurferManager extends EventEmitter {
                     surfer.overloadCount++;
                     if (surfer.overloadCount >= s.RENDERER_EXCEED_LIMIT) {
                         surfer.overloadCount = 0;
-                        surfer.reload(`Renderer-CPU ${Math.round(m.cpu.percentCPUUsage)} % > ${s.RENDERER_CPU_THRESHOLD} %`);
+                        surfer.reload(t('r.rendererCpu', {cpu: Math.round(m.cpu.percentCPUUsage), max: s.RENDERER_CPU_THRESHOLD}));
                     }
                 } else {
                     surfer.overloadCount = 0;
@@ -504,16 +531,16 @@ class SurferManager extends EventEmitter {
 
         if ((cpu > s.OVERLOAD_WARNING_CPU || ram > s.OVERLOAD_WARNING_RAM) && now - this.lastOverloadWarn > WARN_REPEAT_MS) {
             this.lastOverloadWarn = now;
-            this.logger.warn('System', `Hohe Auslastung: ${fmt}`);
+            this.logger.warn('System', t('sys.highLoad', {values: fmt}));
         }
 
         if (cpu > s.OVERLOAD_THRESHOLD_CPU || ram > s.OVERLOAD_THRESHOLD_RAM) {
             this.overloadCount++;
-            this.logger.warn('System', `Überlast ${this.overloadCount}/${s.OVERLOAD_EXCEED_LIMIT}: ${fmt}`);
+            this.logger.warn('System', t('sys.overload', {n: this.overloadCount, max: s.OVERLOAD_EXCEED_LIMIT, values: fmt}));
             if (this.overloadCount >= s.OVERLOAD_EXCEED_LIMIT) {
                 this.overloadCount = 0;
-                this.logger.error('System', 'Überlastgrenze erreicht – alle Surfer werden neu geladen.');
-                this.reloadAll('System-Überlast');
+                this.logger.error('System', t('sys.overloadReached'));
+                this.reloadAll(t('r.systemOverload'));
             }
         } else {
             this.overloadCount = 0;

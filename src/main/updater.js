@@ -5,12 +5,14 @@ const os = require('os');
 const path = require('path');
 const {execFile} = require('child_process');
 const {EventEmitter} = require('events');
+const {t} = require('./i18n');
 
 const MAX_DOWNLOAD = 50 * 1024 * 1024;
 const MAX_MANIFEST = 256 * 1024;
 const FETCH_TIMEOUT_MS = 20000;
 const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 const DEPS_MARKER = '.surfer-install-deps';
+const KEEP_BACKUPS = 3;
 
 // Never touched by an update: user data, installed modules, VCS, backups, IDE files.
 const PROTECTED = new Set(['config', 'logs', 'node_modules', '.git', 'backup', 'userdata', '.idea', '.vscode', DEPS_MARKER]);
@@ -98,13 +100,13 @@ class Updater extends EventEmitter {
     }
 
     installBlocker() {
-        if (!this.repo) return 'Kein GitHub-Repository in package.json hinterlegt.';
-        if (this.isPackaged) return 'Gepackte Version – bitte das neue Paket manuell installieren.';
-        if (fs.existsSync(path.join(this.appRoot, '.git'))) return 'Git-Checkout erkannt – bitte mit „git pull“ aktualisieren.';
+        if (!this.repo) return t('upd.noRepo');
+        if (this.isPackaged) return t('upd.packaged');
+        if (fs.existsSync(path.join(this.appRoot, '.git'))) return t('upd.git');
         try {
             fs.accessSync(this.appRoot, fs.constants.W_OK);
         } catch {
-            return `Keine Schreibrechte im Programmordner ${this.appRoot}.`;
+            return t('upd.noWrite', {dir: this.appRoot});
         }
         return '';
     }
@@ -115,14 +117,14 @@ class Updater extends EventEmitter {
             headers: {'User-Agent': `Surfer-Updater/${this.pkg.version}`, 'Cache-Control': 'no-cache'},
             redirect: 'follow'
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status} von ${new URL(url).host}`);
+        if (!res.ok) throw new Error(t('upd.http', {status: res.status, host: new URL(url).host}));
         return res;
     }
 
     async check({userInitiated = false} = {}) {
         if (this.busy) return this.state;
         if (!this.repo) {
-            this._set({status: 'error', message: 'Kein GitHub-Repository in package.json hinterlegt.', userInitiated});
+            this._set({status: 'error', message: t('upd.noRepo'), userInitiated});
             return this.state;
         }
         this.busy = true;
@@ -130,10 +132,10 @@ class Updater extends EventEmitter {
         try {
             const res = await this._fetch(`https://raw.githubusercontent.com/${this.repo}/${this.branch}/package.json`, FETCH_TIMEOUT_MS);
             const text = await res.text();
-            if (text.length > MAX_MANIFEST) throw new Error('Antwort zu groß');
+            if (text.length > MAX_MANIFEST) throw new Error(t('upd.tooLarge'));
             const remote = JSON.parse(text);
             if (!remote || typeof remote.version !== 'string' || !/^\d+(\.\d+){0,3}([-+][\w.]+)?$/.test(remote.version)) {
-                throw new Error('Ungültige Versionsangabe im Repository');
+                throw new Error(t('upd.badVersion'));
             }
             this.remotePkg = remote;
             const newer = compareVersions(remote.version, this.pkg.version) > 0;
@@ -144,12 +146,12 @@ class Updater extends EventEmitter {
                 canInstall: newer && !blocker,
                 reason: blocker
             });
-            if (newer) this.logger.info('Update', `Neue Version ${remote.version} verfügbar (installiert: ${this.pkg.version}).`);
-            else if (userInitiated) this.logger.info('Update', `Surfer ist aktuell (${this.pkg.version}).`);
+            if (newer) this.logger.info('Update', t('upd.available', {latest: remote.version, current: this.pkg.version}));
+            else if (userInitiated) this.logger.info('Update', t('upd.upToDate', {current: this.pkg.version}));
         } catch (err) {
-            const message = err.name === 'TimeoutError' ? 'Zeitüberschreitung bei der Verbindung zu GitHub' : err.message;
+            const message = err.name === 'TimeoutError' ? t('upd.timeout') : err.message;
             this._set({status: 'error', message});
-            (userInitiated ? this.logger.warn : this.logger.debug).call(this.logger, 'Update', `Prüfung fehlgeschlagen: ${message}`);
+            (userInitiated ? this.logger.warn : this.logger.debug).call(this.logger, 'Update', t('upd.checkFailed', {error: message}));
         } finally {
             this.busy = false;
         }
@@ -158,7 +160,7 @@ class Updater extends EventEmitter {
 
     async install() {
         if (this.busy) return this.state;
-        if (this.state.status !== 'available' || !this.remotePkg) throw new Error('Kein Update verfügbar – bitte zuerst prüfen.');
+        if (this.state.status !== 'available' || !this.remotePkg) throw new Error(t('upd.notAvailable'));
         const blocker = this.installBlocker();
         if (blocker) throw new Error(blocker);
 
@@ -178,13 +180,13 @@ class Updater extends EventEmitter {
             fs.mkdirSync(extractDir);
             await run(tarBinary(), ['-xzf', archive, '-C', extractDir]);
             const roots = fs.readdirSync(extractDir).filter(n => fs.lstatSync(path.join(extractDir, n)).isDirectory());
-            if (roots.length !== 1) throw new Error('Unerwarteter Archivaufbau');
+            if (roots.length !== 1) throw new Error(t('upd.badArchive'));
             const newRoot = path.join(extractDir, roots[0]);
             const newPkg = readJsonFile(path.join(newRoot, 'package.json'));
-            if (String(newPkg.name).toLowerCase() !== String(this.pkg.name).toLowerCase()) throw new Error('Archiv gehört nicht zu Surfer');
-            if (compareVersions(newPkg.version, this.pkg.version) <= 0) throw new Error(`Archiv enthält keine neuere Version (${newPkg.version})`);
+            if (String(newPkg.name).toLowerCase() !== String(this.pkg.name).toLowerCase()) throw new Error(t('upd.wrongArchive'));
+            if (compareVersions(newPkg.version, this.pkg.version) <= 0) throw new Error(t('upd.notNewer', {version: newPkg.version}));
             const mainFile = path.resolve(newRoot, newPkg.main || 'index.js');
-            if (!mainFile.startsWith(newRoot + path.sep) || !fs.existsSync(mainFile)) throw new Error('Archiv unvollständig (Startdatei fehlt)');
+            if (!mainFile.startsWith(newRoot + path.sep) || !fs.existsSync(mainFile)) throw new Error(t('upd.incomplete'));
 
             // 3) back up the current program files
             const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -211,8 +213,9 @@ class Updater extends EventEmitter {
             const depsChanged = JSON.stringify(newPkg.dependencies || {}) !== JSON.stringify(this.pkg.dependencies || {});
             if (depsChanged) fs.writeFileSync(path.join(this.appRoot, DEPS_MARKER), `${newPkg.version}\n`, 'utf-8');
 
+            this._pruneBackups();
             const relBackup = path.relative(this.appRoot, backupDir);
-            this.logger.info('Update', `Version ${newPkg.version} installiert. Sicherung: ${relBackup}${depsChanged ? ' · Abhängigkeiten werden beim nächsten Start über start.bat/start.sh installiert.' : ''}`);
+            this.logger.info('Update', `${t('upd.installed', {version: newPkg.version, backup: relBackup})}${depsChanged ? ` · ${t('upd.installedDeps')}` : ''}`);
             this._set({status: 'installed', latest: newPkg.version, needsDependencyInstall: depsChanged, backup: relBackup, canInstall: false});
         } catch (err) {
             let message = err.message;
@@ -223,12 +226,12 @@ class Updater extends EventEmitter {
                         if (fs.lstatSync(path.join(backupDir, name)).isDirectory()) fs.rmSync(dest, {recursive: true, force: true});
                         copyTree(path.join(backupDir, name), dest);
                     }
-                    message += ' – alte Version wiederhergestellt';
+                    message += ` – ${t('upd.restored')}`;
                 } catch (restoreErr) {
-                    message += ` – Wiederherstellung fehlgeschlagen (${restoreErr.message}), Sicherung liegt in ${backupDir}`;
+                    message += ` – ${t('upd.restoreFailed', {error: restoreErr.message, dir: backupDir})}`;
                 }
             }
-            this.logger.error('Update', `Installation fehlgeschlagen: ${message}`);
+            this.logger.error('Update', t('upd.installFailed', {error: message}));
             this._set({status: 'error', message, userInitiated: true});
         } finally {
             this.busy = false;
@@ -237,10 +240,23 @@ class Updater extends EventEmitter {
         return this.state;
     }
 
+    /** Keeps only the newest KEEP_BACKUPS backup folders. */
+    _pruneBackups() {
+        const dir = path.join(this.appRoot, 'backup');
+        try {
+            const entries = fs.readdirSync(dir)
+                .map(name => ({name, full: path.join(dir, name)}))
+                .filter(e => fs.lstatSync(e.full).isDirectory())
+                .map(e => ({...e, mtime: fs.statSync(e.full).mtimeMs}))
+                .sort((a, b) => b.mtime - a.mtime);
+            for (const old of entries.slice(KEEP_BACKUPS)) fs.rmSync(old.full, {recursive: true, force: true});
+        } catch { /* best effort */ }
+    }
+
     async _download(url, file) {
         const res = await this._fetch(url, DOWNLOAD_TIMEOUT_MS);
         const total = Number(res.headers.get('content-length')) || 0;
-        if (total > MAX_DOWNLOAD) throw new Error('Download zu groß');
+        if (total > MAX_DOWNLOAD) throw new Error(t('upd.downloadTooLarge'));
         const out = fs.createWriteStream(file);
         let received = 0;
         let lastEmit = 0;
@@ -250,7 +266,7 @@ class Updater extends EventEmitter {
                 const {done, value} = await reader.read();
                 if (done) break;
                 received += value.length;
-                if (received > MAX_DOWNLOAD) throw new Error('Download zu groß');
+                if (received > MAX_DOWNLOAD) throw new Error(t('upd.downloadTooLarge'));
                 if (!out.write(value)) await new Promise(r => out.once('drain', r));
                 const now = Date.now();
                 if (now - lastEmit > 200) {
@@ -261,7 +277,7 @@ class Updater extends EventEmitter {
         } finally {
             await new Promise(r => out.end(r));
         }
-        if (received < 64) throw new Error('Download unvollständig'); // truncated archives are rejected by tar
+        if (received < 64) throw new Error(t('upd.downloadIncomplete')); // truncated archives are rejected by tar
     }
 }
 

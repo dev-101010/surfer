@@ -1,6 +1,7 @@
 'use strict';
 
 const {hostOf, hostMatches, sameSite} = require('./domain');
+const {t} = require('./i18n');
 
 const MEDIA_CONTENT_TYPES = [
     'video/', 'audio/',
@@ -66,31 +67,31 @@ class RequestFilter {
         if (host && this.isCaptcha(host)) return ALLOW;
 
         if (s.MAX_IFRAME_DEPTH > 0 && type === 'subFrame' && (req.frameDepth || 0) > s.MAX_IFRAME_DEPTH) {
-            return block(`iFrame zu tief verschachtelt (Ebene ${req.frameDepth})`);
+            return block(t('f.frameDepth', {n: req.frameDepth}));
         }
 
         if (s.ALLOW_WHITELIST && host && this.isWhitelisted(host)) return ALLOW;
 
         if (s.BLOCK_MEDIA && (type === 'media' || type === 'object')) {
-            return block('Medieninhalt');
+            return block(t('f.media'));
         }
 
         if (s.BLOCK_DOMAINS && host && hostMatches(host, this.blockedDomains)) {
-            return block('Gesperrte Domain');
+            return block(t('f.domain'));
         }
 
         if (s.BLOCK_EXTENSIONS && this.blockedExtensions.length) {
             const pathname = (protocol === 'http:' || protocol === 'https:') ? u.pathname.toLowerCase() : '';
             if (pathname) {
                 const ext = this.blockedExtensions.find(e => pathname.endsWith(e));
-                if (ext) return block(`Gesperrte Dateiendung ${ext}`);
+                if (ext) return block(t('f.extension', {ext}));
             }
         }
 
         if (s.BLOCK_OTHER_URL_TYPES) {
-            if (type === 'webSocket' || protocol === 'ws:' || protocol === 'wss:') return block('WebSocket');
+            if (type === 'webSocket' || protocol === 'ws:' || protocol === 'wss:') return block(t('f.websocket'));
             if ((protocol === 'blob:' || protocol === 'data:') && ['subFrame', 'media', 'object'].includes(type)) {
-                return block(`${protocol}-${type === 'subFrame' ? 'Frame' : 'Medium'}`);
+                return block(t(type === 'subFrame' ? 'f.dataFrame' : 'f.dataMedia', {protocol}));
             }
         }
 
@@ -109,40 +110,40 @@ class RequestFilter {
         // Never cancel the top level document itself – that would only produce an error page.
         if (res.resourceType === 'mainFrame') return ALLOW;
         const ct = String(res.contentType).toLowerCase();
-        if (MEDIA_CONTENT_TYPES.some(prefix => ct.startsWith(prefix))) return block(`Medien-Content-Type ${ct.split(';')[0]}`);
+        if (MEDIA_CONTENT_TYPES.some(prefix => ct.startsWith(prefix))) return block(t('f.mediaType', {type: ct.split(';')[0]}));
         return ALLOW;
     }
 
     /** Main frame navigation initiated by the page. */
     checkNavigation(fromUrl, toUrl) {
         const target = safeUrl(toUrl);
-        if (!target) return block('Ungültige Adresse');
+        if (!target) return block(t('f.invalidUrl'));
         if (target.protocol === 'about:') return ALLOW;
-        if (target.protocol !== 'http:' && target.protocol !== 'https:') return block(`Protokoll ${target.protocol} nicht erlaubt`);
+        if (target.protocol !== 'http:' && target.protocol !== 'https:') return block(t('f.protocol', {protocol: target.protocol}));
         if (!this.settings.BLOCK_NAVIGATION_TO_OTHER_DOMAINS) return ALLOW;
         const toHost = target.hostname.toLowerCase();
         if (this.isWhitelisted(toHost) || this.isCaptcha(toHost)) return ALLOW;
         const fromHost = hostOf(fromUrl);
         if (!fromHost) return ALLOW;
         if (sameSite(fromHost, toHost)) return ALLOW;
-        return block(`Navigation von ${fromHost} nach ${toHost}`);
+        return block(t('f.navigation', {from: fromHost, to: toHost}));
     }
 
     /** window.open / target=_blank */
     checkPopup(sourceUrl, targetUrl) {
         const target = safeUrl(targetUrl);
-        if (!target) return block('Ungültige Popup-Adresse');
+        if (!target) return block(t('f.invalidPopup'));
         const isBlank = target.href === 'about:blank';
         if (!isBlank && target.protocol !== 'http:' && target.protocol !== 'https:') {
-            return block(`Popup-Protokoll ${target.protocol} nicht erlaubt`);
+            return block(t('f.popupProtocol', {protocol: target.protocol}));
         }
         if (!this.settings.BLOCK_NOT_WHITELISTED_POPUPS) return ALLOW;
         const toHost = isBlank ? '' : target.hostname.toLowerCase();
         if (toHost && this.isWhitelisted(toHost)) return ALLOW;
         const fromHost = hostOf(sourceUrl);
-        if (!fromHost) return block('Popup von unbekannter Quelle');
+        if (!fromHost) return block(t('f.popupUnknown'));
         if (this.isWhitelisted(fromHost)) return ALLOW;
-        return block(`Popup von ${fromHost} nach ${toHost || 'about:blank'}`);
+        return block(t('f.popup', {from: fromHost, to: toHost || 'about:blank'}));
     }
 }
 

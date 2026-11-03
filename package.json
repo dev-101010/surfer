@@ -1,10 +1,11 @@
 {
   "name": "Surfer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Surfer ist ein Electron-Browser für Surfbars – gesteuert über ein Hauptfenster, jeder Surfer läuft in einem eigenen Subfenster.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
+    "icons": "electron scripts/build-icons.js",
     "test": "node --test test/*.test.js",
     "check": "node --check src/main/main.js && node --test test/*.test.js"
   },

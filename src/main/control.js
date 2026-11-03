@@ -5,6 +5,10 @@ const {app, BrowserWindow, ipcMain, dialog, shell} = require('electron');
 const schema = require('./schema');
 const {DEFAULT_LISTS, LIST_NAMES} = require('./config-store');
 const {uiPreferences, lockDown} = require('./surfer');
+const {appIcon} = require('./icon');
+const i18n = require('./i18n');
+
+const {t} = i18n;
 
 const CONTROL_HTML = path.join(__dirname, '..', 'renderer', 'control', 'index.html');
 const PRELOAD_CONTROL = path.join(__dirname, '..', 'preload', 'control.js');
@@ -65,12 +69,13 @@ class ControlCenter {
             show: false,
             title: `Surfer ${app.getVersion()}`,
             backgroundColor: '#0f1115',
+            icon: appIcon(),
             autoHideMenuBar: true,
             webPreferences: uiPreferences(PRELOAD_CONTROL)
         });
         lockDown(this.win.webContents, this.logger);
         this.win.once('ready-to-show', () => this.win.show());
-        this.win.loadFile(CONTROL_HTML).catch(err => this.logger.error('Surfer', `Hauptfenster konnte nicht geladen werden: ${err.message}`));
+        this.win.loadFile(CONTROL_HTML).catch(err => this.logger.error('Surfer', t('ctl.loadFailed', {error: err.message})));
 
         let boundsTimer = null;
         const saveBounds = () => {
@@ -88,12 +93,12 @@ class ControlCenter {
             if (running > 0) {
                 const choice = dialog.showMessageBoxSync(this.win, {
                     type: 'question',
-                    buttons: ['Beenden', 'Abbrechen'],
+                    buttons: [t('ctl.quit'), t('ctl.cancel')],
                     defaultId: 1,
                     cancelId: 1,
-                    title: 'Surfer beenden',
-                    message: `${running} Surfer laufen noch.`,
-                    detail: 'Beim Schließen des Hauptfensters werden alle Surfer beendet.'
+                    title: t('ctl.quitTitle'),
+                    message: running === 1 ? t('ctl.quitMessageOne') : t('ctl.quitMessage', {n: running}),
+                    detail: t('ctl.quitDetail')
                 });
                 if (choice !== 0) {
                     e.preventDefault();
@@ -106,6 +111,11 @@ class ControlCenter {
         this.win.on('closed', () => {
             this.win = null;
         });
+    }
+
+    /** Reloads the control window (e.g. after a language change). */
+    reloadUi() {
+        if (this.win && !this.win.isDestroyed()) this.win.webContents.reload();
     }
 
     send(name, data) {
@@ -125,14 +135,16 @@ class ControlCenter {
 
         ipcMain.on('toolbar:ready', event => {
             const surfer = this.manager.toolbarOwner(event.sender);
-            if (surfer) surfer.pushToolbar();
+            if (!surfer) return;
+            event.sender.send('toolbar:i18n', {lang: i18n.getLanguage(), strings: i18n.strings()});
+            surfer.pushToolbar();
         });
         ipcMain.on('toolbar:action', (event, action) => {
             const surfer = this.manager.toolbarOwner(event.sender);
             if (!surfer || typeof action !== 'string') return;
             switch (action) {
                 case 'back': surfer.back(); break;
-                case 'reload': surfer.reload('Werkzeugleiste'); break;
+                case 'reload': surfer.reload(t('r.toolbar')); break;
                 case 'home': surfer.home(); break;
                 case 'zoom-in': surfer.zoom(1); break;
                 case 'zoom-out': surfer.zoom(-1); break;
@@ -186,9 +198,9 @@ class ControlCenter {
     }
 
     async _dispatch(event, method, payload) {
-        if (!this._isTrustedSender(event)) return fail('Nicht erlaubt');
+        if (!this._isTrustedSender(event)) return fail(t('err.notAllowed'));
         const handler = typeof method === 'string' && Object.prototype.hasOwnProperty.call(this.methods, method) ? this.methods[method] : null;
-        if (!handler) return fail('Unbekannte Funktion');
+        if (!handler) return fail(t('err.unknownMethod'));
         try {
             return await handler.call(this, payload);
         } catch (err) {
@@ -198,9 +210,9 @@ class ControlCenter {
     }
 
     _surfer(id) {
-        if (!isId(id)) throw new Error('Ungültige Surfer-ID');
+        if (!isId(id)) throw new Error(t('err.invalidId'));
         const surfer = this.manager.get(id);
-        if (!surfer) throw new Error('Surfer nicht gefunden');
+        if (!surfer) throw new Error(t('err.surferNotFound'));
         return surfer;
     }
 }
@@ -217,7 +229,8 @@ ControlCenter.prototype.methods = {
                 paths: this.paths,
                 userAgentDefault: app.userAgentFallback
             },
-            schema: {settings: schema.SETTINGS_GROUPS, browser: schema.BROWSER_GROUPS},
+            schema: {settings: schema.localizedGroups(schema.SETTINGS_GROUPS), browser: schema.localizedGroups(schema.BROWSER_GROUPS)},
+            i18n: {lang: i18n.getLanguage(), locale: i18n.LOCALES[i18n.getLanguage()], strings: i18n.strings()},
             defaults: {lists: DEFAULT_LISTS},
             ...this._configState(),
             surfers: this.manager.snapshots(),
@@ -229,26 +242,29 @@ ControlCenter.prototype.methods = {
 
     updateSettings(patch) {
         const res = this.store.updateSettings(patch);
-        if (res.ok && res.changedKeys.length) this.logger.info('Surfer', `Einstellungen geändert: ${res.changedKeys.join(', ')}`);
+        if (res.ok && res.changedKeys.length) this.logger.info('Surfer', t('ctl.settingsChanged', {keys: res.changedKeys.join(', ')}));
         return fromStore(res);
     },
 
     updateBrowser(patch) {
         const res = this.store.updateBrowser(patch);
-        if (res.ok && res.changedKeys.length) this.logger.info('Surfer', `Browser-Einstellungen geändert (Neustart nötig): ${res.changedKeys.join(', ')}`);
+        if (res.ok && res.changedKeys.length) this.logger.info('Surfer', t('ctl.browserChanged', {keys: res.changedKeys.join(', ')}));
         return res.ok ? ok({...res, restartRequired: this.restartRequired}) : fail(res.errors);
     },
 
     resetSettings() {
         this.store.resetSettings();
-        this.logger.info('Surfer', 'Alle Einstellungen auf Standard zurückgesetzt.');
+        this.logger.info('Surfer', t('ctl.settingsReset'));
         return ok(this._configState());
     },
 
     setList(payload) {
-        if (!payload || !LIST_NAMES.includes(payload.name) || !Array.isArray(payload.entries)) return fail('Ungültige Liste');
+        if (!payload || !LIST_NAMES.includes(payload.name) || !Array.isArray(payload.entries)) return fail(t('err.invalidList'));
         const res = this.store.setList(payload.name, payload.entries.filter(e => typeof e === 'string'));
-        if (res.ok) this.logger.info('Surfer', `Liste ${payload.name} gespeichert (${res.value.length} Einträge${res.rejected.length ? `, ${res.rejected.length} ungültig` : ''}).`);
+        if (res.ok) {
+            const params = {name: payload.name, n: res.value.length, r: res.rejected.length};
+            this.logger.info('Surfer', t(res.rejected.length ? 'ctl.listSavedRejected' : 'ctl.listSaved', params));
+        }
         return fromStore(res);
     },
 
@@ -264,28 +280,28 @@ ControlCenter.prototype.methods = {
         const res = this.store.addSurfer(input);
         if (!res.ok) return fail(res.errors);
         this.manager.syncSurfers();
-        this.logger.info('Surfer', `Surfer hinzugefügt: ${res.value.name} (${res.value.url})`);
+        this.logger.info('Surfer', t('ctl.surferAdded', {name: res.value.name, url: res.value.url}));
         if (input && input.start !== false) this.manager.get(res.value.id).start();
         this.manager.emitSurfersSoon();
         return ok(res.value);
     },
 
     updateSurfer(payload) {
-        if (!payload || !isId(payload.id)) return fail('Ungültige Surfer-ID');
+        if (!payload || !isId(payload.id)) return fail(t('err.invalidId'));
         return fromStore(this.store.updateSurfer(payload.id, payload.patch));
     },
 
     async removeSurfer(id) {
-        if (!isId(id)) return fail('Ungültige Surfer-ID');
+        if (!isId(id)) return fail(t('err.invalidId'));
         const cfg = this.store.getSurfer(id);
         const res = await this.manager.removeSurfer(id);
-        if (res.ok && cfg) this.logger.info('Surfer', `Surfer entfernt: ${cfg.name}`);
+        if (res.ok && cfg) this.logger.info('Surfer', t('ctl.surferRemoved', {name: cfg.name}));
         this.manager.emitSurfersSoon();
         return fromStore(res);
     },
 
     moveSurfer(payload) {
-        if (!payload || !isId(payload.id)) return fail('Ungültige Surfer-ID');
+        if (!payload || !isId(payload.id)) return fail(t('err.invalidId'));
         const res = this.store.moveSurfer(payload.id, payload.direction === -1 ? -1 : 1);
         this.manager.emitSurfersSoon();
         return fromStore(res);
@@ -296,11 +312,11 @@ ControlCenter.prototype.methods = {
         return ok();
     },
     stopSurfer(id) {
-        this._surfer(id).stop('Hauptfenster');
+        this._surfer(id).stop(t('r.mainWindow'));
         return ok();
     },
     reloadSurfer(id) {
-        this._surfer(id).reload('Hauptfenster');
+        this._surfer(id).reload(t('r.mainWindow'));
         return ok();
     },
     showSurfer(id) {
@@ -316,7 +332,7 @@ ControlCenter.prototype.methods = {
         return ok();
     },
     zoomSurfer(payload) {
-        if (!payload) return fail('Ungültig');
+        if (!payload) return fail(t('err.invalid'));
         const dir = payload.direction === 1 ? 1 : payload.direction === -1 ? -1 : 0;
         this._surfer(payload.id).zoom(dir);
         return ok();
@@ -363,9 +379,9 @@ ControlCenter.prototype.methods = {
 
     async exportLog() {
         const res = await dialog.showSaveDialog(this.win, {
-            title: 'Protokoll exportieren',
+            title: t('ctl.exportTitle'),
             defaultPath: `surfer-log-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`,
-            filters: [{name: 'Text', extensions: ['txt']}]
+            filters: [{name: t('ctl.exportFilter'), extensions: ['txt']}]
         });
         if (res.canceled || !res.filePath) return ok(false);
         const text = this.logger.entries()
@@ -399,7 +415,7 @@ ControlCenter.prototype.methods = {
     },
 
     restartApp() {
-        this.logger.info('Surfer', 'Neustart …');
+        this.logger.info('Surfer', t('ctl.restarting'));
         this.allowClose = true;
         app.relaunch();
         app.quit();

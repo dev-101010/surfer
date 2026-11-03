@@ -3,10 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 const {EventEmitter} = require('events');
+const {t} = require('./i18n');
 
 const LEVELS = ['debug', 'info', 'warn', 'error', 'block'];
 const MAX_MESSAGE = 2000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// everything below 0x20 except \n (stack traces), plus DEL and C1 controls
+const CONTROL_CHARS = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/g;
 
 const COLORS = {
     reset: '\x1b[0m',
@@ -48,8 +51,11 @@ class Logger extends EventEmitter {
 
     log(level, source, message) {
         if (!LEVELS.includes(level)) level = 'info';
-        const text = stringify(message).slice(0, MAX_MESSAGE);
-        const entry = {id: ++this.seq, ts: Date.now(), level, source: String(source || 'Surfer').slice(0, 80), message: text};
+        // Messages contain untrusted text (page titles, URLs): strip control characters so a page
+        // can neither inject terminal escape sequences nor forge additional log lines.
+        const text = stringify(message).slice(0, MAX_MESSAGE).replace(CONTROL_CHARS, ' ');
+        const src = String(source || 'Surfer').slice(0, 80).replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ');
+        const entry = {id: ++this.seq, ts: Date.now(), level, source: src, message: text};
         this.buffer.push(entry);
         if (this.buffer.length > this.max) this.buffer.splice(0, this.buffer.length - this.max);
         this._writeConsole(entry);
@@ -89,7 +95,7 @@ class Logger extends EventEmitter {
             this._openStream();
         } catch (err) {
             this.filePath = null;
-            this.error('Logger', `Logdatei kann nicht geöffnet werden: ${err.message}`);
+            this.error('Logger', t('logger.openFailed', {error: err.message}));
         }
     }
 
@@ -98,7 +104,7 @@ class Logger extends EventEmitter {
         this.stream.on('error', err => {
             this.stream = null;
             this.filePath = null;
-            this.error('Logger', `Logdatei-Fehler: ${err.message}`);
+            this.error('Logger', t('logger.fileError', {error: err.message}));
         });
     }
 

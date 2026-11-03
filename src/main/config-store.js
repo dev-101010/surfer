@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const {EventEmitter} = require('events');
 const schema = require('./schema');
 const {normalizeDomain, normalizeExtension, normalizeHttpUrl, displayHost} = require('./domain');
+const {t} = require('./i18n');
 
 const FILE_VERSION = 2;
 const MAX_SURFERS = 100;
@@ -168,7 +169,7 @@ class ConfigStore extends EventEmitter {
     /** Validates an arbitrary object into a complete data structure. */
     sanitize(raw) {
         const d = this.defaults();
-        if (!raw || typeof raw !== 'object') return {data: d, issues: ['Datei leer oder ungültig']};
+        if (!raw || typeof raw !== 'object') return {data: d, issues: [t('cfg.emptyOrInvalid')]};
         const issues = [];
 
         const s = schema.sanitizeObject(schema.SETTINGS_ITEMS, raw.settings, d.settings);
@@ -184,7 +185,7 @@ class ConfigStore extends EventEmitter {
                 if (!Array.isArray(raw.lists[name])) continue;
                 const {accepted, rejected} = normalizeList(name, raw.lists[name]);
                 d.lists[name] = accepted;
-                if (rejected.length) issues.push(`${name}: ${rejected.length} ungültige Einträge verworfen`);
+                if (rejected.length) issues.push(t('cfg.listRejected', {list: name, n: rejected.length}));
             }
         }
 
@@ -195,7 +196,7 @@ class ConfigStore extends EventEmitter {
             for (const entry of raw.surfers.slice(0, MAX_SURFERS)) {
                 const surfer = sanitizeSurfer(entry);
                 if (!surfer) {
-                    issues.push('Ungültiger Surfer-Eintrag verworfen');
+                    issues.push(t('cfg.invalidSurfer'));
                     continue;
                 }
                 if (ids.has(surfer.id)) surfer.id = newId();
@@ -217,9 +218,9 @@ class ConfigStore extends EventEmitter {
             this.data = legacy || this.defaults();
             this.saveNow();
             if (legacy) {
-                this.log('info', `Alte Konfiguration aus ${this.dir} übernommen (${this.data.surfers.length} Surfer). Die alten Dateien werden nicht mehr verwendet.`);
+                this.log('info', t('cfg.migrated', {dir: this.dir, n: this.data.surfers.length}));
             } else {
-                this.log('info', `Neue Konfiguration angelegt: ${this.file}`);
+                this.log('info', t('cfg.created', {file: this.file}));
             }
             return this.data;
         }
@@ -230,14 +231,14 @@ class ConfigStore extends EventEmitter {
             try {
                 fs.renameSync(this.file, corrupt);
             } catch { /* ignore */ }
-            this.log('error', `settings.json ist beschädigt und wurde nach ${path.basename(corrupt)} verschoben.`);
+            this.log('error', t('cfg.corrupt', {file: path.basename(corrupt)}));
             raw = readJson(`${this.file}.bak`);
-            if (raw) this.log('warn', 'Letzte Sicherung (settings.json.bak) wird verwendet.');
+            if (raw) this.log('warn', t('cfg.useBackup'));
         }
 
         const {data, issues} = this.sanitize(raw);
         this.data = data;
-        for (const issue of issues) this.log('warn', `Konfiguration: ${issue}`);
+        for (const issue of issues) this.log('warn', t('cfg.issue', {issue}));
         this.saveNow();
         return this.data;
     }
@@ -257,7 +258,7 @@ class ConfigStore extends EventEmitter {
         const links = readTextLines(p('surfbarLinks')) || [];
         raw.surfers = links.map(l => l.trim()).filter(l => l && !l.startsWith('#')).map(url => ({url}));
         const {data, issues} = this.sanitize(raw);
-        for (const issue of issues) this.log('warn', `Import: ${issue}`);
+        for (const issue of issues) this.log('warn', t('cfg.importIssue', {issue}));
         return data;
     }
 
@@ -288,7 +289,7 @@ class ConfigStore extends EventEmitter {
                 } catch { /* ignore */ }
             }
         } catch (err) {
-            this.log('error', `Konfiguration konnte nicht gespeichert werden: ${err.message}`);
+            this.log('error', t('cfg.saveFailed', {error: err.message}));
         }
     }
 
@@ -328,8 +329,8 @@ class ConfigStore extends EventEmitter {
     // ---- lists ----------------------------------------------------------------------------
 
     setList(name, entries) {
-        if (!LIST_NAMES.includes(name)) return {ok: false, errors: ['Unbekannte Liste']};
-        if (!Array.isArray(entries)) return {ok: false, errors: ['Liste erwartet']};
+        if (!LIST_NAMES.includes(name)) return {ok: false, errors: [t('err.unknownList')]};
+        if (!Array.isArray(entries)) return {ok: false, errors: [t('err.listExpected')]};
         const {accepted, rejected} = normalizeList(name, entries.slice(0, MAX_LIST_ENTRIES * 2));
         this.data.lists[name] = accepted;
         this.save();
@@ -338,12 +339,12 @@ class ConfigStore extends EventEmitter {
     }
 
     resetList(name) {
-        if (!LIST_NAMES.includes(name)) return {ok: false, errors: ['Unbekannte Liste']};
+        if (!LIST_NAMES.includes(name)) return {ok: false, errors: [t('err.unknownList')]};
         return this.setList(name, [...DEFAULT_LISTS[name]]);
     }
 
     setUserAgent(ua) {
-        if (typeof ua !== 'string') return {ok: false, errors: ['Text erwartet']};
+        if (typeof ua !== 'string') return {ok: false, errors: [t('err.textExpected')]};
         const value = cleanText(ua, MAX_UA_LENGTH);
         this.data.userAgent = value;
         this.save();
@@ -358,10 +359,10 @@ class ConfigStore extends EventEmitter {
     }
 
     addSurfer(input) {
-        if (this.data.surfers.length >= MAX_SURFERS) return {ok: false, errors: [`Höchstens ${MAX_SURFERS} Surfer`]};
-        if (!input || typeof input !== 'object') return {ok: false, errors: ['Ungültige Eingabe']};
+        if (this.data.surfers.length >= MAX_SURFERS) return {ok: false, errors: [t('err.maxSurfers', {n: MAX_SURFERS})]};
+        if (!input || typeof input !== 'object') return {ok: false, errors: [t('err.invalidInput')]};
         const surfer = sanitizeSurfer({...input, id: undefined, bounds: null});
-        if (!surfer) return {ok: false, errors: ['Bitte eine gültige http(s)-Adresse angeben']};
+        if (!surfer) return {ok: false, errors: [t('err.invalidUrl')]};
         this.data.surfers.push(surfer);
         this.save();
         this.emit('change', {section: 'surfers', keys: [surfer.id]});
@@ -370,15 +371,15 @@ class ConfigStore extends EventEmitter {
 
     updateSurfer(id, patch) {
         const current = this.getSurfer(id);
-        if (!current) return {ok: false, errors: ['Surfer nicht gefunden']};
-        if (!patch || typeof patch !== 'object') return {ok: false, errors: ['Ungültige Änderung']};
+        if (!current) return {ok: false, errors: [t('err.surferNotFound')]};
+        if (!patch || typeof patch !== 'object') return {ok: false, errors: [t('err.invalidChange')]};
         if (patch.url !== undefined && !normalizeHttpUrl(patch.url)) {
-            return {ok: false, errors: ['Bitte eine gültige http(s)-Adresse angeben']};
+            return {ok: false, errors: [t('err.invalidUrl')]};
         }
         const allowed = {};
         for (const k of ['name', 'url', 'autostart', 'isolated', 'zoom', 'bounds']) if (k in patch) allowed[k] = patch[k];
         const next = sanitizeSurfer({...current, ...allowed, id}, current);
-        if (!next) return {ok: false, errors: ['Ungültige Änderung']};
+        if (!next) return {ok: false, errors: [t('err.invalidChange')]};
         const changedKeys = Object.keys(next).filter(k => JSON.stringify(next[k]) !== JSON.stringify(current[k]));
         Object.assign(current, next);
         if (changedKeys.length) {
@@ -392,7 +393,7 @@ class ConfigStore extends EventEmitter {
 
     removeSurfer(id) {
         const idx = this.data.surfers.findIndex(s => s.id === id);
-        if (idx < 0) return {ok: false, errors: ['Surfer nicht gefunden']};
+        if (idx < 0) return {ok: false, errors: [t('err.surferNotFound')]};
         const [removed] = this.data.surfers.splice(idx, 1);
         this.save();
         this.emit('change', {section: 'surfers', keys: [id]});
@@ -402,7 +403,7 @@ class ConfigStore extends EventEmitter {
     moveSurfer(id, direction) {
         const idx = this.data.surfers.findIndex(s => s.id === id);
         const to = idx + (direction < 0 ? -1 : 1);
-        if (idx < 0 || to < 0 || to >= this.data.surfers.length) return {ok: false, errors: ['Verschieben nicht möglich']};
+        if (idx < 0 || to < 0 || to >= this.data.surfers.length) return {ok: false, errors: [t('err.cannotMove')]};
         const list = this.data.surfers;
         [list[idx], list[to]] = [list[to], list[idx]];
         this.save();

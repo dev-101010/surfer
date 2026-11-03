@@ -8,6 +8,10 @@ const {ConfigStore} = require('./config-store');
 const {SurferManager} = require('./surfer-manager');
 const {ControlCenter} = require('./control');
 const {Updater} = require('./updater');
+const {ICON_PNG} = require('./icon');
+const i18n = require('./i18n');
+
+const {t} = i18n;
 
 const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -29,8 +33,8 @@ process.emitWarning = (warning, ...rest) => {
     logger.debug('System', `${type}: ${warning instanceof Error ? warning.message : warning}`);
 };
 
-process.on('uncaughtException', err => logger.error('System', `Unbehandelter Fehler: ${err && err.stack ? err.stack : err}`));
-process.on('unhandledRejection', reason => logger.error('System', `Unbehandelte Promise-Ablehnung: ${reason && reason.stack ? reason.stack : reason}`));
+process.on('uncaughtException', err => logger.error('System', t('app.uncaught', {error: err && err.stack ? err.stack : err})));
+process.on('unhandledRejection', reason => logger.error('System', t('app.unhandledRejection', {error: reason && reason.stack ? reason.stack : reason})));
 
 /**
  * Surfer normally runs without a console window, so a failed start must be visible:
@@ -38,7 +42,7 @@ process.on('unhandledRejection', reason => logger.error('System', `Unbehandelte 
  */
 function fatal(err) {
     const text = err && err.stack ? err.stack : String(err);
-    logger.error('System', `Start fehlgeschlagen: ${text}`);
+    logger.error('System', t('fatal.log', {error: text}));
     let file = '';
     try {
         fs.mkdirSync(LOG_DIR, {recursive: true});
@@ -48,15 +52,15 @@ function fatal(err) {
         file = '';
     }
     try {
-        dialog.showErrorBox('Surfer konnte nicht gestartet werden',
-            `${err && err.message ? err.message : text}\n\n${file ? `Details: ${file}\n` : ''}Zur Fehlersuche mit start-debug.bat bzw. ./start.sh --debug starten.`);
+        dialog.showErrorBox(t('fatal.title'),
+            `${err && err.message ? err.message : text}\n\n${file ? `${t('fatal.details', {file})}\n` : ''}${t('fatal.hint')}`);
     } catch { /* ignore */ }
     app.exit(1);
 }
 
 if (!app.requestSingleInstanceLock()) {
     // Another instance owns this profile – it will bring its window to front.
-    process.stdout.write('Surfer läuft bereits.\n');
+    process.stdout.write(`${t('app.alreadyRunning')}\n`);
     app.quit();
 } else {
     try {
@@ -109,8 +113,9 @@ function buildMenu() {
 }
 
 function boot() {
-    const store = new ConfigStore(CONFIG_DIR, {log: (level, msg) => logger.log(level, 'Konfiguration', msg)});
+    const store = new ConfigStore(CONFIG_DIR, {log: (level, msg) => logger.log(level, t('src.config'), msg)});
     store.load();
+    i18n.setLanguage(store.data.settings.LANGUAGE);
     applyLoggerSettings(store.data.settings);
     store.on('change', ({section, keys}) => {
         if (section === 'settings' && keys.some(k => k.startsWith('LOG_TO_'))) applyLoggerSettings(store.data.settings);
@@ -130,6 +135,17 @@ function boot() {
         paths: {config: CONFIG_DIR, logs: LOG_DIR, userData: app.getPath('userData')}
     });
 
+    store.on('change', ({section, keys}) => {
+        if (section !== 'settings' || !keys.includes('LANGUAGE')) return;
+        i18n.setLanguage(store.data.settings.LANGUAGE);
+        logger.info('Surfer', t('ctl.language', {lang: t(`opt.LANGUAGE.${i18n.getLanguage()}`)}));
+        // let the pending IPC answer reach the page before it reloads
+        setTimeout(() => {
+            control.reloadUi();
+            manager.reloadToolbars();
+        }, 150);
+    });
+
     app.on('second-instance', () => control.open());
 
     app.on('web-contents-created', (_e, contents) => {
@@ -140,8 +156,11 @@ function boot() {
     app.whenReady().then(() => {
         sanitizeDefaultUserAgent();
         buildMenu();
+        // Own taskbar identity: Surfer windows group together instead of under "Electron".
+        if (process.platform === 'win32') app.setAppUserModelId('de.dev101010.surfer');
+        if (process.platform === 'darwin' && app.dock) app.dock.setIcon(ICON_PNG);
         logger.info('Surfer', `Surfer ${app.getVersion()} · Electron ${process.versions.electron} · Chrome ${process.versions.chrome}`);
-        logger.info('Surfer', `Konfiguration: ${store.file}`);
+        logger.info('Surfer', t('app.config', {file: store.file}));
         manager.init();
         control.init();
         control.open();
@@ -164,7 +183,7 @@ function boot() {
     });
 
     app.on('will-quit', () => {
-        logger.info('Surfer', 'Programm beendet.');
+        logger.info('Surfer', t('app.exit'));
         logger.close();
     });
 }

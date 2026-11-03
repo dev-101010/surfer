@@ -3,95 +3,97 @@
 /**
  * Central settings schema. Every value that can be changed in the UI is described here.
  * The schema drives validation (main process) and form generation (control window).
+ * Labels and descriptions live in i18n.js under s.<KEY>.label / s.<KEY>.desc, group names under g.<id>.
  *
- * type: 'bool' | 'int' | 'string'
+ * type: 'bool' | 'int' | 'string' | 'enum'
  * restart: true => change only takes effect after an application restart
  */
 
+const {t} = require('./i18n');
+
 const SETTINGS_GROUPS = [
     {
-        id: 'windows',
-        label: 'Surfer-Fenster',
+        id: 'general',
         items: [
-            {key: 'WINDOW_WIDTH', type: 'int', default: 1280, min: 320, max: 7680, unit: 'px', label: 'Fensterbreite', description: 'Breite neuer Surfer-Fenster.'},
-            {key: 'WINDOW_HEIGHT', type: 'int', default: 720, min: 240, max: 4320, unit: 'px', label: 'Fensterhöhe', description: 'Höhe neuer Surfer-Fenster.'},
-            {key: 'REMEMBER_BOUNDS', type: 'bool', default: true, label: 'Position merken', description: 'Größe und Position jedes Surfer-Fensters speichern und beim nächsten Start wiederherstellen.'},
-            {key: 'SHOW_TOOLBAR', type: 'bool', default: true, label: 'Werkzeugleiste anzeigen', description: 'Leiste mit Status, Adresse und Schaltflächen oberhalb der Seite.'},
-            {key: 'SHOW_IN_TASKBAR', type: 'bool', default: true, label: 'In Taskleiste anzeigen', description: 'Surfer-Fenster erscheinen als eigene Einträge in der Taskleiste.'},
-            {key: 'START_HIDDEN', type: 'bool', default: false, label: 'Verborgen starten', description: 'Surfer laufen im Hintergrund, ohne dass ihr Fenster angezeigt wird.'}
+            {key: 'LANGUAGE', type: 'enum', default: 'auto', options: ['auto', 'de', 'en']}
+        ]
+    },
+    {
+        id: 'windows',
+        items: [
+            {key: 'WINDOW_WIDTH', type: 'int', default: 1280, min: 320, max: 7680, unit: 'px'},
+            {key: 'WINDOW_HEIGHT', type: 'int', default: 720, min: 240, max: 4320, unit: 'px'},
+            {key: 'REMEMBER_BOUNDS', type: 'bool', default: true},
+            {key: 'SHOW_TOOLBAR', type: 'bool', default: true},
+            {key: 'SHOW_IN_TASKBAR', type: 'bool', default: true},
+            {key: 'START_HIDDEN', type: 'bool', default: false}
         ]
     },
     {
         id: 'behaviour',
-        label: 'Verhalten',
         items: [
-            {key: 'AUTOSTART', type: 'bool', default: true, label: 'Autostart', description: 'Beim Programmstart alle Surfer mit aktiviertem Autostart starten.'},
-            {key: 'MUTE_AUDIO', type: 'bool', default: true, label: 'Ton stummschalten', description: 'Alle Surfer und Popups standardmäßig stummschalten.'},
-            {key: 'BLOCK_DIALOGS', type: 'bool', default: true, label: 'JS-Dialoge unterdrücken', description: 'alert/confirm/prompt blockieren, damit unbeaufsichtigte Surfer nie hängen bleiben. Gilt ab dem nächsten Start eines Surfers.'},
-            {key: 'BACKGROUND_THROTTLING', type: 'bool', default: false, label: 'Hintergrund-Drosselung', description: 'Chromium drosselt Timer verborgener Fenster. Für Surfbars meist deaktiviert lassen.'},
-            {key: 'CUSTOM_USER_AGENT', type: 'bool', default: false, label: 'Eigener User-Agent', description: 'Den unter „Filter & Identität“ hinterlegten User-Agent verwenden.'},
-            {key: 'RELOAD_TIMER', type: 'int', default: 0, min: 0, max: 86400, unit: 's', label: 'Reload-Intervall', description: 'Seite alle X Sekunden neu laden (0 = aus).'},
-            {key: 'STALL_TIMEOUT', type: 'int', default: 0, min: 0, max: 86400, unit: 's', label: 'Stillstand-Erkennung', description: 'Neu laden, wenn sich X Sekunden lang weder Adresse noch Titel noch ein Frame ändern (0 = aus).'},
-            {key: 'CRASH_RESTART', type: 'bool', default: true, label: 'Automatisch wiederherstellen', description: 'Nach Absturz, Ladefehler oder Hänger automatisch neu laden (mit wachsender Wartezeit).'},
-            {key: 'CRASH_RESTART_DELAY', type: 'int', default: 10, min: 1, max: 3600, unit: 's', label: 'Wartezeit Wiederherstellung', description: 'Basis-Wartezeit vor dem Neuladen. Verdoppelt sich bei wiederholten Fehlern (max. 32×).'},
-            {key: 'UNRESPONSIVE_TIMEOUT', type: 'int', default: 30, min: 5, max: 600, unit: 's', label: 'Hänger-Timeout', description: 'Reagiert eine Seite so lange nicht, wird ihr Prozess beendet und neu geladen.'}
+            {key: 'AUTOSTART', type: 'bool', default: true},
+            {key: 'MUTE_AUDIO', type: 'bool', default: true},
+            {key: 'BLOCK_DIALOGS', type: 'bool', default: true},
+            {key: 'BACKGROUND_THROTTLING', type: 'bool', default: false},
+            {key: 'CUSTOM_USER_AGENT', type: 'bool', default: false},
+            {key: 'RELOAD_TIMER', type: 'int', default: 0, min: 0, max: 86400, unit: 's'},
+            {key: 'STALL_TIMEOUT', type: 'int', default: 0, min: 0, max: 86400, unit: 's'},
+            {key: 'CRASH_RESTART', type: 'bool', default: true},
+            {key: 'CRASH_RESTART_DELAY', type: 'int', default: 10, min: 1, max: 3600, unit: 's'},
+            {key: 'UNRESPONSIVE_TIMEOUT', type: 'int', default: 30, min: 5, max: 600, unit: 's'}
         ]
     },
     {
         id: 'scripts',
-        label: 'Seiten-Skripte',
         items: [
-            {key: 'JS_FAKE_VISIBLE_ENABLED', type: 'bool', default: true, label: 'Sichtbarkeit vortäuschen', description: 'Seite hält sich immer für sichtbar und fokussiert (auch in iFrames).'},
-            {key: 'JS_MOUSE_SIMULATION', type: 'bool', default: true, label: 'Mausbewegung simulieren', description: 'Alle 5–15 Sekunden eine Mausbewegung auslösen.'},
-            {key: 'JS_CHECK_ENABLED', type: 'bool', default: true, label: 'DOM-Wächter', description: 'Video-/Audio-Elemente und srcdoc-iFrames sofort entfernen.'}
+            {key: 'JS_FAKE_VISIBLE_ENABLED', type: 'bool', default: true},
+            {key: 'JS_MOUSE_SIMULATION', type: 'bool', default: true},
+            {key: 'JS_CHECK_ENABLED', type: 'bool', default: true}
         ]
     },
     {
         id: 'filter',
-        label: 'Filter',
         items: [
-            {key: 'ALLOW_WHITELIST', type: 'bool', default: true, label: 'Whitelist', description: 'Anfragen an Whitelist-Domains immer erlauben (überspringt die folgenden Filter).'},
-            {key: 'BLOCK_DOMAINS', type: 'bool', default: true, label: 'Domains sperren', description: 'Anfragen an gesperrte Domains blockieren.'},
-            {key: 'BLOCK_EXTENSIONS', type: 'bool', default: true, label: 'Dateiendungen sperren', description: 'Anfragen auf gesperrte Dateiendungen blockieren.'},
-            {key: 'BLOCK_MEDIA', type: 'bool', default: true, label: 'Medien sperren', description: 'Audio, Video und Streams blockieren (Anfragetyp und Content-Type).'},
-            {key: 'BLOCK_DOWNLOADS', type: 'bool', default: true, label: 'Downloads sperren', description: 'Alle Downloads verhindern.'},
-            {key: 'BLOCK_OTHER_URL_TYPES', type: 'bool', default: true, label: 'Sonstige Verbindungen sperren', description: 'WebSockets, blob:/data:-Frames und -Medien blockieren, WebRTC-Leaks unterbinden.'},
-            {key: 'MAX_IFRAME_DEPTH', type: 'int', default: 3, min: 0, max: 20, label: 'Max. iFrame-Tiefe', description: 'Tiefer verschachtelte iFrames blockieren (0 = unbegrenzt).'},
-            {key: 'BLOCK_NAVIGATION_TO_OTHER_DOMAINS', type: 'bool', default: true, label: 'Fremdnavigation sperren', description: 'Die Hauptseite darf nur innerhalb ihrer Domain (oder zur Whitelist) navigieren.'},
-            {key: 'BLOCK_NOT_WHITELISTED_POPUPS', type: 'bool', default: true, label: 'Popups filtern', description: 'Nur Popups von oder zu Whitelist-Domains zulassen.'},
-            {key: 'MAX_POPUPS', type: 'int', default: 3, min: 0, max: 20, label: 'Max. Popups je Surfer', description: 'Höchstzahl gleichzeitig offener Popups pro Surfer (0 = keine Popups).'},
-            {key: 'LOG_BLOCKED', type: 'bool', default: true, label: 'Blockierungen protokollieren', description: 'Jede blockierte Anfrage im Protokoll aufführen (gezählt wird immer).'}
+            {key: 'ALLOW_WHITELIST', type: 'bool', default: true},
+            {key: 'BLOCK_DOMAINS', type: 'bool', default: true},
+            {key: 'BLOCK_EXTENSIONS', type: 'bool', default: true},
+            {key: 'BLOCK_MEDIA', type: 'bool', default: true},
+            {key: 'BLOCK_DOWNLOADS', type: 'bool', default: true},
+            {key: 'BLOCK_OTHER_URL_TYPES', type: 'bool', default: true},
+            {key: 'MAX_IFRAME_DEPTH', type: 'int', default: 3, min: 0, max: 20},
+            {key: 'BLOCK_NAVIGATION_TO_OTHER_DOMAINS', type: 'bool', default: true},
+            {key: 'BLOCK_NOT_WHITELISTED_POPUPS', type: 'bool', default: true},
+            {key: 'MAX_POPUPS', type: 'int', default: 3, min: 0, max: 20},
+            {key: 'LOG_BLOCKED', type: 'bool', default: true}
         ]
     },
     {
         id: 'monitor',
-        label: 'Überwachung',
         items: [
-            {key: 'RENDERER_OVERLOAD_CHECK', type: 'bool', default: false, label: 'Renderer-Überlast', description: 'Surfer neu laden, wenn sein Prozess dauerhaft zu viel CPU verbraucht.'},
-            {key: 'RENDERER_CPU_THRESHOLD', type: 'int', default: 90, min: 10, max: 1000, unit: '%', label: 'Renderer-CPU-Grenze', description: 'CPU-Last eines Renderer-Prozesses (100 % = ein Kern).'},
-            {key: 'RENDERER_EXCEED_LIMIT', type: 'int', default: 3, min: 1, max: 100, label: 'Renderer-Überschreitungen', description: 'Anzahl aufeinanderfolgender Messungen (alle 2 s) über der Grenze bis zum Neuladen.'},
-            {key: 'OVERLOAD_ENABLED', type: 'bool', default: false, label: 'System-Überlast', description: 'Alle Surfer neu laden, wenn System-CPU oder -RAM dauerhaft über der Grenze liegen.'},
-            {key: 'OVERLOAD_WARNING_CPU', type: 'int', default: 50, min: 1, max: 100, unit: '%', label: 'Warnung CPU', description: 'Ab dieser System-CPU-Last wird gewarnt.'},
-            {key: 'OVERLOAD_WARNING_RAM', type: 'int', default: 50, min: 1, max: 100, unit: '%', label: 'Warnung RAM', description: 'Ab dieser RAM-Auslastung wird gewarnt.'},
-            {key: 'OVERLOAD_THRESHOLD_CPU', type: 'int', default: 90, min: 1, max: 100, unit: '%', label: 'Grenze CPU', description: 'Ab dieser System-CPU-Last zählt eine Überschreitung.'},
-            {key: 'OVERLOAD_THRESHOLD_RAM', type: 'int', default: 90, min: 1, max: 100, unit: '%', label: 'Grenze RAM', description: 'Ab dieser RAM-Auslastung zählt eine Überschreitung.'},
-            {key: 'OVERLOAD_CHECK_INTERVAL', type: 'int', default: 5, min: 1, max: 3600, unit: 's', label: 'Prüfintervall', description: 'Abstand der System-Messungen.'},
-            {key: 'OVERLOAD_EXCEED_LIMIT', type: 'int', default: 3, min: 1, max: 100, label: 'System-Überschreitungen', description: 'Anzahl aufeinanderfolgender Überschreitungen bis zum Neuladen aller Surfer.'}
+            {key: 'RENDERER_OVERLOAD_CHECK', type: 'bool', default: false},
+            {key: 'RENDERER_CPU_THRESHOLD', type: 'int', default: 90, min: 10, max: 1000, unit: '%'},
+            {key: 'RENDERER_EXCEED_LIMIT', type: 'int', default: 3, min: 1, max: 100},
+            {key: 'OVERLOAD_ENABLED', type: 'bool', default: false},
+            {key: 'OVERLOAD_WARNING_CPU', type: 'int', default: 50, min: 1, max: 100, unit: '%'},
+            {key: 'OVERLOAD_WARNING_RAM', type: 'int', default: 50, min: 1, max: 100, unit: '%'},
+            {key: 'OVERLOAD_THRESHOLD_CPU', type: 'int', default: 90, min: 1, max: 100, unit: '%'},
+            {key: 'OVERLOAD_THRESHOLD_RAM', type: 'int', default: 90, min: 1, max: 100, unit: '%'},
+            {key: 'OVERLOAD_CHECK_INTERVAL', type: 'int', default: 5, min: 1, max: 3600, unit: 's'},
+            {key: 'OVERLOAD_EXCEED_LIMIT', type: 'int', default: 3, min: 1, max: 100}
         ]
     },
     {
         id: 'logging',
-        label: 'Protokoll',
         items: [
-            {key: 'LOG_TO_FILE', type: 'bool', default: false, label: 'In Datei schreiben', description: 'Protokoll zusätzlich nach logs/surfer.log schreiben (rotiert bei 5 MB).'},
-            {key: 'LOG_TO_CONSOLE', type: 'bool', default: true, label: 'In Konsole schreiben', description: 'Protokoll zusätzlich farbig in der Konsole ausgeben.'}
+            {key: 'LOG_TO_FILE', type: 'bool', default: false},
+            {key: 'LOG_TO_CONSOLE', type: 'bool', default: true}
         ]
     },
     {
         id: 'updates',
-        label: 'Updates',
         items: [
-            {key: 'UPDATE_CHECK', type: 'bool', default: true, label: 'Automatisch nach Updates suchen', description: 'Beim Start und danach alle 24 Stunden auf GitHub nach einer neuen Version suchen. Installiert wird nur auf Knopfdruck.'}
+            {key: 'UPDATE_CHECK', type: 'bool', default: true}
         ]
     }
 ];
@@ -99,19 +101,18 @@ const SETTINGS_GROUPS = [
 const BROWSER_GROUPS = [
     {
         id: 'browser',
-        label: 'Browser-Engine',
         restart: true,
         items: [
-            {key: 'disableSiteIsolationTrials', type: 'bool', default: true, label: 'Site-Isolation aus', description: 'Weniger Prozesse, weniger RAM. Etwas geringere Isolation zwischen Seiten.'},
-            {key: 'disableGpuProcessPrelaunch', type: 'bool', default: true, label: 'GPU-Prozess nicht vorladen', description: ''},
-            {key: 'disableRendererBackgrounding', type: 'bool', default: true, label: 'Renderer nicht in den Hintergrund', description: 'Verhindert Prioritätsabsenkung verborgener Fenster.'},
-            {key: 'enableLowEndDeviceMode', type: 'bool', default: true, label: 'Low-End-Modus', description: 'Chromium spart Speicher auf Kosten der Leistung.'},
-            {key: 'disableAccelerated2DCanvas', type: 'bool', default: true, label: '2D-Canvas-Beschleunigung aus', description: ''},
-            {key: 'disableHardwareAcceleration', type: 'bool', default: true, label: 'Hardwarebeschleunigung aus', description: ''},
-            {key: 'disableSoftwareRasterizer', type: 'bool', default: true, label: 'Software-Rasterizer aus', description: ''},
-            {key: 'disableGpu', type: 'bool', default: true, label: 'GPU aus', description: ''},
-            {key: 'disableGpuCompositing', type: 'bool', default: true, label: 'GPU-Compositing aus', description: ''},
-            {key: 'rendererProcessLimit', type: 'int', default: 4, min: 0, max: 64, label: 'Renderer-Prozesslimit', description: 'Höchstzahl an Renderer-Prozessen (0 = Chromium entscheidet). Für viele Surfer erhöhen.'}
+            {key: 'disableSiteIsolationTrials', type: 'bool', default: true},
+            {key: 'disableGpuProcessPrelaunch', type: 'bool', default: true},
+            {key: 'disableRendererBackgrounding', type: 'bool', default: true},
+            {key: 'enableLowEndDeviceMode', type: 'bool', default: true},
+            {key: 'disableAccelerated2DCanvas', type: 'bool', default: true},
+            {key: 'disableHardwareAcceleration', type: 'bool', default: true},
+            {key: 'disableSoftwareRasterizer', type: 'bool', default: true},
+            {key: 'disableGpu', type: 'bool', default: true},
+            {key: 'disableGpuCompositing', type: 'bool', default: true},
+            {key: 'rendererProcessLimit', type: 'int', default: 4, min: 0, max: 64}
         ]
     }
 ];
@@ -133,34 +134,57 @@ function defaultsFrom(items) {
     return out;
 }
 
+function labelOf(item) {
+    return t(`s.${item.key}.label`);
+}
+
+/** Groups with labels/descriptions/options resolved in the current language (for the UI). */
+function localizedGroups(groups) {
+    return groups.map(g => ({
+        ...g,
+        label: t(`g.${g.id}`),
+        items: g.items.map(item => ({
+            ...item,
+            label: labelOf(item),
+            description: t(`s.${item.key}.desc`),
+            options: item.options ? item.options.map(value => ({value, label: t(`opt.${item.key}.${value}`)})) : undefined
+        }))
+    }));
+}
+
 /**
  * Coerces and validates a single value against its schema item.
  * Returns {ok: true, value} or {ok: false, error}.
  */
 function sanitizeValue(item, raw) {
+    const label = labelOf(item);
     switch (item.type) {
         case 'bool': {
             if (typeof raw === 'boolean') return {ok: true, value: raw};
             if (raw === 'true' || raw === 1 || raw === '1') return {ok: true, value: true};
             if (raw === 'false' || raw === 0 || raw === '0') return {ok: true, value: false};
-            return {ok: false, error: `${item.label}: Ja/Nein erwartet`};
+            return {ok: false, error: t('val.bool', {label})};
         }
         case 'int': {
             const n = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
-            if (typeof n !== 'number' || !Number.isFinite(n)) return {ok: false, error: `${item.label}: Zahl erwartet`};
+            if (typeof n !== 'number' || !Number.isFinite(n)) return {ok: false, error: t('val.number', {label})};
             const v = Math.round(n);
-            if (item.min !== undefined && v < item.min) return {ok: false, error: `${item.label}: Mindestens ${item.min}`};
-            if (item.max !== undefined && v > item.max) return {ok: false, error: `${item.label}: Höchstens ${item.max}`};
+            if (item.min !== undefined && v < item.min) return {ok: false, error: t('val.min', {label, n: item.min})};
+            if (item.max !== undefined && v > item.max) return {ok: false, error: t('val.max', {label, n: item.max})};
             return {ok: true, value: v};
         }
         case 'string': {
-            if (typeof raw !== 'string') return {ok: false, error: `${item.label}: Text erwartet`};
+            if (typeof raw !== 'string') return {ok: false, error: t('val.text', {label})};
             const max = item.maxLength || STRING_MAX;
-            if (raw.length > max) return {ok: false, error: `${item.label}: Höchstens ${max} Zeichen`};
+            if (raw.length > max) return {ok: false, error: t('val.maxLength', {label, n: max})};
             return {ok: true, value: raw};
         }
+        case 'enum': {
+            if (typeof raw === 'string' && item.options.includes(raw)) return {ok: true, value: raw};
+            return {ok: false, error: t('val.option', {label})};
+        }
         default:
-            return {ok: false, error: `Unbekannter Typ für ${item.key}`};
+            return {ok: false, error: t('val.unknownType', {key: item.key})};
     }
 }
 
@@ -201,7 +225,7 @@ function sanitizeObject(items, input, base) {
  */
 function applyPatch(items, current, patch) {
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-        return {ok: false, errors: ['Ungültige Änderung']};
+        return {ok: false, errors: [t('err.invalidChange')]};
     }
     const next = {...current};
     const errors = [];
@@ -209,7 +233,7 @@ function applyPatch(items, current, patch) {
     for (const [key, raw] of Object.entries(patch)) {
         const item = items.find(i => i.key === key);
         if (!item) {
-            errors.push(`Unbekannte Einstellung: ${String(key).slice(0, 64)}`);
+            errors.push(t('val.unknownSetting', {key: String(key).slice(0, 64)}));
             continue;
         }
         const res = sanitizeValue(item, raw);
@@ -233,6 +257,7 @@ module.exports = {
     BROWSER_ITEMS,
     DEFAULT_SETTINGS: defaultsFrom(SETTINGS_ITEMS),
     DEFAULT_BROWSER: defaultsFrom(BROWSER_ITEMS),
+    localizedGroups,
     sanitizeValue,
     sanitizeObject,
     applyPatch

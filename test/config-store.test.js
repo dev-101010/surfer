@@ -7,6 +7,9 @@ const os = require('os');
 const path = require('path');
 const {ConfigStore} = require('../src/main/config-store');
 const schema = require('../src/main/schema');
+const i18n = require('../src/main/i18n');
+
+i18n.setLanguage('de');
 
 function tmpDir() {
     return fs.mkdtempSync(path.join(os.tmpdir(), 'surfer-test-'));

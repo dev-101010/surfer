@@ -3,6 +3,8 @@
 const path = require('path');
 const {BaseWindow, WebContentsView} = require('electron');
 const {displayHost} = require('./domain');
+const {appIcon} = require('./icon');
+const {t} = require('./i18n');
 
 const TOOLBAR_HEIGHT = 40;
 const PRELOAD_CONTENT = path.join(__dirname, '..', 'preload', 'content.js');
@@ -59,7 +61,7 @@ function lockDown(webContents, logger) {
                 logger.log(details.level === 'error' ? 'error' : 'warn', 'UI', `${details.message} (${String(details.sourceId || '').split('/').pop()}:${details.lineNumber})`);
             }
         });
-        webContents.on('preload-error', (_e, preloadPath, error) => logger.error('UI', `Preload-Fehler ${path.basename(preloadPath)}: ${error.message}`));
+        webContents.on('preload-error', (_e, preloadPath, error) => logger.error('UI', t('ui.preloadError', {file: path.basename(preloadPath), error: error.message})));
     }
     webContents.setWindowOpenHandler(() => ({action: 'deny'}));
     webContents.on('will-navigate', e => e.preventDefault());
@@ -163,11 +165,15 @@ class Surfer {
             title: cfg.name,
             skipTaskbar: !s.SHOW_IN_TASKBAR,
             backgroundColor: '#14161b',
+            icon: appIcon(),
             autoHideMenuBar: true
         });
 
         this.content = new WebContentsView({webPreferences: contentPreferences(s, {session: ses, zoomFactor: cfg.zoom})});
         this.content.setBackgroundColor('#ffffff');
+        // Chromium shares zoom per host by default – two surfers on the same surfbar would fight.
+        this.content.webContents.setZoomMode('isolated');
+        this.content.webContents.setZoomFactor(cfg.zoom);
         this.win.contentView.addChildView(this.content);
         if (s.SHOW_TOOLBAR) this._createToolbar();
         this._layout();
@@ -176,7 +182,7 @@ class Surfer {
         this._bindContent(this.content.webContents);
         this.manager.attachContents(this, this.content.webContents);
 
-        this.log('info', `Gestartet: ${cfg.url}`);
+        this.log('info', t('sf.started', {url: cfg.url}));
         this._load(cfg.url);
 
         if (!s.START_HIDDEN) this.win.showInactive();
@@ -188,7 +194,7 @@ class Surfer {
     stop(reason) {
         if (!this.running) return;
         this.stopping = true;
-        if (reason) this.log('info', `Gestoppt (${reason})`);
+        if (reason) this.log('info', t('sf.stopped', {reason}));
         this._saveBounds(true);
         this.win.close(); // -> 'closed' -> _cleanup()
     }
@@ -196,7 +202,7 @@ class Surfer {
     async restart() {
         if (this.running) {
             const closed = new Promise(resolve => this.win.once('closed', resolve));
-            this.stop('Neustart');
+            this.stop(t('r.restart'));
             await closed;
         }
         this.start();
@@ -223,7 +229,7 @@ class Surfer {
         this.toolbar = null;
         const {reloads, blocked, crashes} = this.state;
         this.state = {...freshState(), reloads, blocked, crashes};
-        if (!this.stopping) this.log('info', 'Fenster geschlossen');
+        if (!this.stopping) this.log('info', t('sf.windowClosed'));
         this.stopping = false;
         this.changed();
     }
@@ -318,7 +324,7 @@ class Surfer {
             if (this.running) this.win.setTitle(this.state.title ? `${this.name} · ${this.state.title}` : this.name);
             if (this.state.title && this.state.title !== this.lastLoggedTitle) {
                 this.lastLoggedTitle = this.state.title;
-                this.log('info', `Titel: ${this.state.title}`);
+                this.log('info', t('sf.title', {title: this.state.title}));
             }
             this.changed();
         });
@@ -337,38 +343,38 @@ class Surfer {
             // -3 = ERR_ABORTED (navigation replaced, user stop, blocked by us)
             if (!isMainFrame || code === -3) return;
             this.state.status = 'error';
-            this.state.error = `${description || 'Ladefehler'} (${code})`;
-            this.log('error', `Seite konnte nicht geladen werden: ${this.state.error} – ${url}`);
-            this._scheduleRecovery('Ladefehler');
+            this.state.error = `${description || t('sf.loadError')} (${code})`;
+            this.log('error', t('sf.loadFailed', {error: this.state.error, url}));
+            this._scheduleRecovery(t('sf.loadError'));
             this.changed();
         });
         wc.on('render-process-gone', (_e, details) => {
             if (this.stopping || !this.running) return;
             this.state.crashes++;
             this.state.status = 'crashed';
-            this.state.error = `Renderer beendet: ${details.reason} (Code ${details.exitCode})`;
+            this.state.error = t('sf.rendererGone', {reason: details.reason, code: details.exitCode});
             this.log('error', this.state.error);
-            this._scheduleRecovery('Absturz');
+            this._scheduleRecovery(t('r.crash'));
             this.changed();
         });
         wc.on('unresponsive', () => {
             const timeout = this.settings.UNRESPONSIVE_TIMEOUT;
-            this.log('warn', `Seite reagiert nicht – wird nach ${timeout} s beendet, falls das so bleibt.`);
+            this.log('warn', t('sf.unresponsive', {s: timeout}));
             clearTimeout(this.timers.unresponsive);
             this.timers.unresponsive = setTimeout(() => {
                 if (!this.webContents) return;
-                this.log('error', 'Seite hängt – Renderer wird beendet.');
+                this.log('error', t('sf.hangKill'));
                 try {
                     this.webContents.forcefullyCrashRenderer();
                 } catch { /* ignore */ }
-                if (!this.settings.CRASH_RESTART) this._scheduleRecovery('Hänger', true);
+                if (!this.settings.CRASH_RESTART) this._scheduleRecovery(t('r.hang'), true);
             }, timeout * 1000);
         });
         wc.on('responsive', () => {
             if (this.timers.unresponsive) {
                 clearTimeout(this.timers.unresponsive);
                 delete this.timers.unresponsive;
-                this.log('info', 'Seite reagiert wieder.');
+                this.log('info', t('sf.responsive'));
             }
         });
     }
@@ -394,7 +400,7 @@ class Surfer {
         this.failures++;
         clearTimeout(this.timers.recovery);
         this.state.recoveryAt = now + delay;
-        this.log('warn', `${reason}: neuer Versuch in ${Math.round(delay / 1000)} s (Versuch ${this.failures}).`);
+        this.log('warn', t('sf.retry', {reason, s: Math.round(delay / 1000), n: this.failures}));
         this.timers.recovery = setTimeout(() => {
             delete this.timers.recovery;
             this.state.recoveryAt = 0;
@@ -413,13 +419,15 @@ class Surfer {
         if (!this.running) return;
         const s = this.settings;
         if (s.RELOAD_TIMER > 0) {
-            this.timers.reload = setInterval(() => this.reload(`Reload-Intervall ${s.RELOAD_TIMER} s`), s.RELOAD_TIMER * 1000);
+            this.timers.reload = setInterval(() => this.reload(t('r.reloadTimer', {s: s.RELOAD_TIMER})), s.RELOAD_TIMER * 1000);
         }
         if (s.STALL_TIMEOUT > 0) {
             this.timers.stall = setInterval(() => {
                 const limit = this.settings.STALL_TIMEOUT * 1000;
-                if (limit > 0 && this.state.status === 'running' && Date.now() - this.state.lastActivity > limit) {
-                    this.reload(`Stillstand seit ${this.settings.STALL_TIMEOUT} s`);
+                // 'loading' included: pages that never finish loading (hanging ad frames) are the classic stall
+                const active = this.state.status === 'running' || this.state.status === 'loading';
+                if (limit > 0 && active && !this.timers.recovery && Date.now() - this.state.lastActivity > limit) {
+                    this.reload(t('r.stall', {s: this.settings.STALL_TIMEOUT}));
                 }
             }, STALL_CHECK_MS);
         }
@@ -432,7 +440,7 @@ class Surfer {
         if (!wc) return;
         this.state.reloads++;
         this.state.lastActivity = Date.now();
-        this.log('info', reason ? `Neu laden (${reason})` : 'Neu laden');
+        this.log('info', reason ? t('sf.reloadReason', {reason}) : t('sf.reload'));
         const url = wc.getURL();
         if (!url || url.startsWith('chrome-error:') || this.state.status === 'crashed' || this.state.status === 'error') {
             this._load(this.cfg.url);
@@ -502,7 +510,7 @@ class Surfer {
             this.popups.delete(win);
             this.changed();
         });
-        this.log('info', `Popup geöffnet (${this.popups.size}/${this.settings.MAX_POPUPS})`);
+        this.log('info', t('sf.popupOpened', {n: this.popups.size, max: this.settings.MAX_POPUPS}));
         this.changed();
     }
 

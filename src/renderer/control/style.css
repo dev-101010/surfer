@@ -459,3 +459,4 @@ input.invalid { border-color: var(--err); }
 .spacer { flex: 1; }
 #update-card .hint { margin: 10px 0 0; }
 #update-card .hint:empty { display: none; }
+.setting-control select { width: 170px; }
